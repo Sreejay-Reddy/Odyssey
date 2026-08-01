@@ -1,0 +1,29 @@
+# example config of version 1, subject to change until 1.0.0
+
+services:
+  name: url
+  name2: url2
+  nameN: urlN
+
+registry:
+  target1:
+    retry:
+      policy: forever
+      delay: 2s
+    
+  target2:
+    retry:
+      policy: fixed
+      attempts: 5
+      delay: 4s
+
+  target3:
+    retry:
+      policy: fixed
+      attempts: 5
+      delay: 4s
+
+    on_failure:
+      notify: slack
+      wait_for_input: true
+

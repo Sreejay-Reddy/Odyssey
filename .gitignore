@@ -1,0 +1,16 @@
+# Ignore unwanted files inside odyssey-py
+odyssey-py/__pycache__/
+odyssey-py/**/*.pyc
+odyssey-py/*.egg-info/
+odyssey-py/build/
+odyssey-py/dist/
+odyssey-py/LICENSE
+
+# Ignore env and tests
+odysseyenv/
+dvenv/
+test-app/
+
+# Python cache
+__pycache__/
+*.pyc

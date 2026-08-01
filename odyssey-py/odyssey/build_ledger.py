@@ -1,21 +1,13 @@
-class Build_ledger:
+from .results import BuildLedgerResult
+
+class BuildLedger:
     def __init__(self, get_conn, key, steps, delegates):
         self.get_conn = get_conn
         self.key = key
         self.steps = steps
-        self.delegates = delegates or {}
+        self.delegates = delegates 
 
     def run(self):
-            
-        if not self.steps:
-            raise ValueError("build_ledger requires at least one step")
-
-        if len(self.steps) != len(set(self.steps)):
-            raise ValueError("steps must be unique")
-
-        unknown = set(self.delegates) - set(self.steps)
-        if unknown:
-            raise ValueError(f"delegates references steps not present in `steps`: {sorted(unknown)}")
         
         conn = self.get_conn()
         ledger_rows = []
@@ -51,10 +43,16 @@ class Build_ledger:
                 """, delivery_rows, )
 
             conn.commit()
-            return {
-                "steps": len(ledger_rows),
-                "delegated": len(delivery_rows)
-            }
+
+            return BuildLedgerResult(
+                key=self.key,
+                targets=list(self.steps),
+                delegated=list(self.delegates.keys()),
+                local=[
+                    step for step in self.steps
+                    if step not in self.delegates
+                ],
+            )
 
         except Exception as e:
             conn.rollback()
