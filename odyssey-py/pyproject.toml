@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "odysseys-py"
+version = "0.0.1"
+description = "A lightweight durable execution and orchestration runtime for distributed services."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+authors = [
+    { name = "Sreejay Reddy" }
+]
+
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+]
+
+keywords = [
+    "workflow",
+    "durable-execution",
+    "orchestration",
+    "distributed-systems",
+    "postgres",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]

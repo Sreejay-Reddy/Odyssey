@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS odyssey_journeys (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     execution_result JSONB,
     status odyssey_status NOT NULL DEFAULT 'claimed',
+    attempts INTEGER NOT NULL DEFAULT 1,
     fencing_token BIGINT NOT NULL DEFAULT 1,
 
     PRIMARY KEY (key, target),
