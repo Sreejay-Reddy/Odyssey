@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS odyssey_ledger (
     target TEXT NOT NULL,
     status odyssey_status NOT NULL DEFAULT 'claimed',
     mode odyssey_execution_mode NOT NULL,
+    input JSONB,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
 

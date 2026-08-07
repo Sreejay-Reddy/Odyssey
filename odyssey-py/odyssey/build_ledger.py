@@ -1,11 +1,10 @@
 from .results import BuildLedgerResult
 
 class BuildLedger:
-    def __init__(self, get_conn, key, steps, delegates):
+    def __init__(self, get_conn, key, steps):
         self.get_conn = get_conn
         self.key = key
         self.steps = steps
-        self.delegates = delegates 
 
     def run(self):
         
@@ -14,23 +13,23 @@ class BuildLedger:
         delivery_rows = []
 
         try:
-            for target in self.steps:
+            for step in self.steps:
 
-                if target in self.delegates:
-                    destination = self.delegates.get(target)
-                    delivery_rows.append((self.key, target, destination))
-                    ledger_rows.append((self.key, target, "delegated"))
+                if step.delegate:
+                    delivery_rows.append((self.key, step.target, step.delegate))
+                    ledger_rows.append((self.key, step.target, "delegated", step.kwargs))
                 else:
-                    ledger_rows.append((self.key, target, "local"))
+                    ledger_rows.append((self.key, step.target, "local", step.kwargs))
 
             with conn.cursor() as cur:
                 cur.executemany("""
                 INSERT INTO odyssey_ledger(
                 key,
                 target,
-                mode
+                mode,
+                input
                 )
-                VALUES(%s,%s,%s)
+                VALUES(%s,%s,%s,%s)
                 """, ledger_rows, )
 
                 cur.executemany("""
@@ -46,12 +45,20 @@ class BuildLedger:
 
             return BuildLedgerResult(
                 key=self.key,
-                targets=list(self.steps),
-                delegated=list(self.delegates.keys()),
-                local=[
-                    step for step in self.steps
-                    if step not in self.delegates
+                targets=[
+                    step.target
+                    for step in self.steps
                 ],
+                delegated=[
+                    step.target
+                    for step in self.steps
+                    if step.delegate
+                ],
+                local=[
+                    step.target
+                    for step in self.steps
+                    if not step.delegate
+                ]
             )
 
         except Exception as e:

@@ -6,6 +6,15 @@ services:
   nameN: urlN
 
 registry:
+  default:
+    retry:
+      policy: forever
+      delay: 2s
+
+    on_failure:
+      notify: slack
+      wait_for_input: true
+
   target1:
     retry:
       policy: forever
