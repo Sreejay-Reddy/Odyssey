@@ -2,11 +2,11 @@ from pathlib import Path
 import yaml
 
 def find_config(filename="odyssey.yaml"):
-    current = Path.cwd()
+    current = Path.cwd().resolve()
 
     while True:
         candidate = current / filename
-        if candidate.exists():
+        if candidate.is_file():
             return candidate
 
         if current.parent == current:
@@ -22,7 +22,6 @@ def load_config(filename="odyssey.yaml"):
         raise FileNotFoundError(f"Could not locate {filename}")
 
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) or {}, path
 
-config = load_config()
-print(config["registry"])
+
