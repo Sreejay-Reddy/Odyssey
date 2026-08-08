@@ -1,4 +1,5 @@
 from .results import BuildLedgerResult
+from psycopg.types.json import Jsonb
 
 class BuildLedger:
     def __init__(self, get_conn, key, steps):
@@ -17,9 +18,9 @@ class BuildLedger:
 
                 if step.delegate:
                     delivery_rows.append((self.key, step.target, step.delegate))
-                    ledger_rows.append((self.key, step.target, "delegated", step.kwargs))
+                    ledger_rows.append((self.key, step.target, "delegated", Jsonb(step.kwargs)))
                 else:
-                    ledger_rows.append((self.key, step.target, "local", step.kwargs))
+                    ledger_rows.append((self.key, step.target, "local", Jsonb(step.kwargs)))
 
             with conn.cursor() as cur:
                 cur.executemany("""

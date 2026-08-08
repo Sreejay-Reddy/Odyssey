@@ -1,16 +1,17 @@
 import json
 from .utils import get_owner_id, row_to_dict
 from .results import AcquireResult, OperationResult, InspectResult
+from psycopg.types.json import Jsonb
 
-def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
+async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
 
     owner_id = owner_id or get_owner_id()
     ttl_ms = ttl_ms if ttl_ms and ttl_ms > 0 else 10000
 
     row = None 
 
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         INSERT INTO odyssey_journeys (
             key,
             target,
@@ -33,18 +34,18 @@ def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
             owner_id = EXCLUDED.owner_id,
             expires_at = EXCLUDED.expires_at,
             updated_at = NOW(),
-            attempts = attempts = odyssey_journeys.attempts + 1,
+            attempts = odyssey_journeys.attempts + 1,
             fencing_token = nextval('odyssey_token_seq')
-        WHERE odyssey_journeys.expires_at < NOW() AND odyssey_journeys.status = 'claimed'
+        WHERE odyssey_journeys.expires_at < NOW() AND odyssey_journeys.status IN ('claimed', 'executing')
         RETURNING owner_id, expires_at, fencing_token, status, target, expires_at > NOW() AS journey_alive;
         """, (key, target, owner_id, ttl_ms))
 
-        result = cur.fetchone()
+        result = await cur.fetchone()
 
         if result is not None:
             row = row_to_dict(cur, result)
 
-    conn.commit()
+    await conn.commit()
 
     if row is not None and row["fencing_token"] is None:
         raise Exception("Invariant violation: fencing_token is None")
@@ -60,15 +61,15 @@ def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
             status=row["status"]
         )
     
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         SELECT owner_id, expires_at, fencing_token, status, expires_at > NOW() AS journey_alive
         FROM odyssey_journeys
         WHERE key = %s
         AND target = %s
         """, (key, target))
 
-        result = cur.fetchone()
+        result = await cur.fetchone()
 
         if result is not None:
             row = row_to_dict(cur, result)
@@ -82,12 +83,12 @@ def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
             fencing_token=row["fencing_token"],
             status=row["status"])
 
-def start_execution(conn, key, *, target, fencing_token):
+async def start_execution(conn, key, *, target, fencing_token):
 
     row = None
     
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         UPDATE odyssey_journeys
         SET status = 'executing',
             updated_at = NOW()
@@ -98,27 +99,27 @@ def start_execution(conn, key, *, target, fencing_token):
         RETURNING status;
         """, (key, target, fencing_token))
 
-        result = cur.fetchone()
+        result = await cur.fetchone()
         success = result is not None
         if result is not None:
             row = row_to_dict(cur, result)
     
-    conn.commit()
+    await conn.commit()
     if row is None:
         return OperationResult(success)
 
     return OperationResult(success, status=row["status"])
 
-def complete(conn, key, *, target, fencing_token, execution_result=None):
+async def complete(conn, key, *, target, fencing_token, execution_result=None):
 
     serialized_result = (
-        json.dumps(execution_result)
+        Jsonb(execution_result)
         if execution_result is not None
         else None
     )
 
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         UPDATE odyssey_journeys
         SET
             status = 'completed',
@@ -131,14 +132,14 @@ def complete(conn, key, *, target, fencing_token, execution_result=None):
         RETURNING 1;
         """, (serialized_result, key, target, fencing_token))
 
-        success = cur.fetchone() is not None
+        success = await cur.fetchone() is not None
 
-    conn.commit()
+    await conn.commit()
     return OperationResult(success)
 
-def abandon(conn, key, *, target, fencing_token):
-    with conn.cursor() as cur:
-        cur.execute("""
+async def abandon(conn, key, *, target, fencing_token):
+    async with conn.cursor() as cur:
+        await cur.execute("""
         UPDATE odyssey_journeys
         SET expires_at = NOW(),
             updated_at = NOW()
@@ -148,9 +149,9 @@ def abandon(conn, key, *, target, fencing_token):
             AND status = 'executing'
         RETURNING 1;
         """, (key, target, fencing_token))
-        success = cur.fetchone() is not None
+        success = await cur.fetchone() is not None
 
-    conn.commit()
+    await conn.commit()
     return OperationResult(success)
 
 # needs to be completely overhauled because each key and target represents a different notation

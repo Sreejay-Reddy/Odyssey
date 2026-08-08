@@ -18,6 +18,8 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "PyYAML>=6.0",
     "python-dotenv>=1.0",
+    "starlette>=0.40",
+    "uvicorn>=0.30",
 ]
 
 keywords = [
