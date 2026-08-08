@@ -1,6 +1,9 @@
 from .config import load_config
 from .build_ledger import BuildLedger
 from .register import Register
+import uvicorn
+from .server import OdysseyServer
+from .cli import print_startup
 
 class Step:
     def __init__(
@@ -128,4 +131,17 @@ class Odyssey:
             fn=fn,
             ttl_ms=ttl_ms
         )
-        
+
+    def serve(self, host="127.0.0.1", port=8765):
+        print_startup(self)
+
+        server = OdysseyServer(
+            registry=self._register,
+            get_conn=self._conn,
+        )
+
+        uvicorn.run(
+            server.app,
+            host=host,
+            port=port,
+        )
