@@ -1,7 +1,12 @@
+import psycopg
+from psycopg import AsyncConnection
+import asyncio
+import selectors
+import sys
+import uvicorn
 from .config import load_config
 from .build_ledger import BuildLedger
 from .register import Register
-import uvicorn
 from .server import OdysseyServer
 from .cli import print_startup
 
@@ -18,7 +23,7 @@ class Step:
         self.kwargs = dict(kwargs)
 
 class Odyssey:
-    def __init__(self, get_conn = None, config = None, default_ttl_ms=10000, namespace=None):
+    def __init__(self, db_url = None, config = None, default_ttl_ms=10000, namespace=None):
         self.default_ttl_ms = default_ttl_ms
         self.namespace = namespace
         
@@ -30,15 +35,18 @@ class Odyssey:
 
         self._register = Register(config=self.config)
 
-        if get_conn is None:
+        if db_url is None:
             raise ValueError(
-                "get_conn must be provided."
+                "db_url must be provided."
         )
 
-        self.get_conn = get_conn
+        self.db_url = db_url
 
-    def _conn(self):
-        return self.get_conn()
+    def _sync_conn(self):
+        return psycopg.connect(self.db_url)
+
+    async def _async_conn(self):
+        return await AsyncConnection.connect(self.db_url)
 
     def _ttl(self, ttl_ms):
         return ttl_ms if ttl_ms is not None else self.default_ttl_ms
@@ -115,7 +123,7 @@ class Odyssey:
         key = self._key(key)
         
         builder = BuildLedger(
-            get_conn = self._conn,
+            get_conn = self._sync_conn,
             key=key,
             steps=steps
         )
@@ -137,11 +145,33 @@ class Odyssey:
 
         server = OdysseyServer(
             registry=self._register,
-            get_conn=self._conn,
+            get_conn=self._async_conn,
         )
 
-        uvicorn.run(
+        config = uvicorn.Config(
             server.app,
             host=host,
             port=port,
         )
+
+        uvicorn_server = uvicorn.Server(config)
+
+        if sys.platform == "win32":
+            loop = asyncio.SelectorEventLoop(
+                selectors.SelectSelector()
+            )
+            asyncio.set_event_loop(loop)
+
+        else:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        try:
+            loop.run_until_complete(
+                uvicorn_server.serve()
+            )
+        finally:
+            loop.run_until_complete(
+                loop.shutdown_asyncgens()
+            )
+            loop.close()
