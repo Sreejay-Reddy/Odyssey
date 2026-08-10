@@ -6,7 +6,8 @@ from .core import (
 )
 
 from .helper import(
-    fetch_cached_response
+    fetch_cached_response,
+    fetch_input
 )
 
 import inspect
@@ -21,8 +22,7 @@ class Execute:
         key,
         target,
         fn,
-        ttl_ms,
-        kwargs=None
+        ttl_ms
     ):
 
         self.get_conn = get_conn
@@ -30,7 +30,6 @@ class Execute:
         self.target = target
         self.fn = fn
         self.ttl_ms = ttl_ms
-        self.kwargs = dict(kwargs or {})
 
     async def run(self):
         conn = await self.get_conn()
@@ -46,7 +45,7 @@ class Execute:
             if not acquired.acquired:
 
                 if acquired.status == "completed":
-                    cached = fetch_cached_response(
+                    cached = await fetch_cached_response(
                         conn,
                         self.key,
                         target= self.target
@@ -83,12 +82,20 @@ class Execute:
 
             try:
 
+                kwargs = await fetch_input(
+                    conn,
+                    self.key,
+                    target=self.target
+                )
+
+                kwargs = kwargs or {}
+
                 if inspect.iscoroutinefunction(self.fn):
-                    response = await self.fn(**self.kwargs)
+                    response = await self.fn(**kwargs)
                 else:
                     response = await run_in_threadpool(
                         self.fn,
-                        **self.kwargs
+                        **kwargs
                     )
 
             except Exception as e:

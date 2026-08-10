@@ -1,7 +1,7 @@
 from .results import OperationResult
 from .utils import row_to_dict
 
-def validate_and_extend(
+async def validate_and_extend(
     conn,
     key,
     *,
@@ -11,8 +11,8 @@ def validate_and_extend(
 ):
     row = None
 
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         UPDATE odyssey_journeys
         SET
             expires_at = NOW() + (%s * INTERVAL '1 millisecond'),
@@ -30,24 +30,24 @@ def validate_and_extend(
             fencing_token
         ))
 
-        result = cur.fetchone()
+        result = await cur.fetchone()
         success = result is not None
 
         if result is not None:
             row = row_to_dict(cur, result)
 
-    conn.commit()
+    await conn.commit()
 
     if row is None:
         return OperationResult(success)
 
     return OperationResult(success, status=row["status"])
 
-def fetch_cached_response(conn, key, target):
+async def fetch_cached_response(conn, key, *, target):
     row = None
 
-    with conn.cursor() as cur:
-        cur.execute("""
+    async with conn.cursor() as cur:
+        await cur.execute("""
         SELECT
             execution_result,
             status
@@ -57,7 +57,7 @@ def fetch_cached_response(conn, key, target):
             AND status = 'completed'
         """, (key, target))
 
-        result = cur.fetchone()
+        result = await cur.fetchone()
 
         if result is not None:
             row = row_to_dict(cur, result)
@@ -69,3 +69,23 @@ def fetch_cached_response(conn, key, target):
         "response": row["execution_result"],
         "status": row["status"]
     }
+
+async def fetch_input(conn, key, *, target):
+    row = None
+
+    async with conn.cursor() as cur:
+        await cur.execute("""
+        SELECT input FROM odyssey_ledger 
+        WHERE key = %s
+        AND target = %s
+        """, (key, target))
+
+        result = await cur.fetchone()
+
+        if result is not None:
+            row = row_to_dict(cur, result)
+
+    if row is None:
+        return None
+
+    return row["input"]
