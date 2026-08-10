@@ -20,7 +20,6 @@ class Execution:
 
         key = data.get("key")
         target = data.get("target")
-        payload = data.get("input", {})
 
         if not key:
             return JSONResponse(
@@ -34,12 +33,6 @@ class Execution:
                 status_code=400,
             )
 
-        if not isinstance(payload, dict):
-            return JSONResponse(
-                {"error": "input must be an object."},
-                status_code=400,
-            )
-
         if not self.registry.exists(target):
             return JSONResponse(
                 {"error": f"Target '{target}' is not registered."},
@@ -49,16 +42,15 @@ class Execution:
         registered = self.registry.get(target)
 
         try:
-            executioninstance = Execute(
+            execution = Execute(
                 get_conn=self.get_conn,
                 key=key,
                 target=target,
                 ttl_ms=registered.ttl_ms,
-                fn=registered.fn,
-                kwargs=payload
+                fn=registered.fn
             )
 
-            result = await executioninstance.run()
+            result = await execution.run()
 
             return JSONResponse(
                 {
