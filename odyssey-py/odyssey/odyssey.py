@@ -3,12 +3,16 @@ from psycopg import AsyncConnection
 import asyncio
 import selectors
 import sys
+import os
 import uvicorn
 from .config import load_config
 from .build_ledger import BuildLedger
 from .register import Register
 from .server import OdysseyServer
 from .cli import print_startup
+from .environment import load_environment
+from .db import async_init_db as async_initialize_db
+from .db import init_db as sync_initialize_db
 
 class Step:
     def __init__(
@@ -35,10 +39,15 @@ class Odyssey:
 
         self._register = Register(config=self.config)
 
+        load_environment()
+
+        db_url = db_url or os.getenv("DATABASE_URL")
+
         if db_url is None:
             raise ValueError(
-                "db_url must be provided."
-        )
+                "db_url must be provided. "
+                "DATABASE_URL must be set."
+            )
 
         self.db_url = db_url
 
@@ -53,6 +62,22 @@ class Odyssey:
 
     def _key(self, key):
         return f"{self.namespace}:{key}" if self.namespace else key
+
+    def init_db(self):
+        conn = self._sync_conn()
+
+        try:
+            sync_initialize_db(conn)
+        finally:
+            conn.close()
+
+    async def async_init_db(self):
+        conn = await self._async_conn()
+
+        try:
+            await async_initialize_db(conn)
+        finally:
+            await conn.close()
 
     def build_ledger(self, key, steps):
 
