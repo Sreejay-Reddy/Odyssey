@@ -150,7 +150,7 @@ func (e *execute) startExecution(ctx context.Context) (bool, error){
           AND target = $2
           AND fencing_token = $3
           AND status = 'claimed'
-        RETURNING TRUE;`,
+        RETURNING status;`,
 		e.key,
 		e.target,
 		e.metadata.fencingToken,

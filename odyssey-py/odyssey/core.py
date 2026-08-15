@@ -124,7 +124,7 @@ async def start_execution(conn, key, *, target, fencing_token):
           AND target = %s
           AND fencing_token = %s
           AND status = 'claimed'
-        RETURNING TRUE;
+        RETURNING status;
         """, (key, target, fencing_token))
 
         journey_result = await cur.fetchone()
