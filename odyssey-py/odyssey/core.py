@@ -18,7 +18,7 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
         WHERE key = %s
             AND target = %s
             AND status = 'claimed'
-        RETURNING 1;
+        RETURNING TRUE;
         """, (key, target))
 
         ledger_result = await cur.fetchone()
@@ -111,7 +111,7 @@ async def start_execution(conn, key, *, target, fencing_token):
         WHERE key = %s
             AND target = %s
             AND status = 'claimed'
-        RETURNING status;
+        RETURNING TRUE;
         """, (key, target))
 
         ledger_result = await cur.fetchone()
@@ -124,7 +124,7 @@ async def start_execution(conn, key, *, target, fencing_token):
           AND target = %s
           AND fencing_token = %s
           AND status = 'claimed'
-        RETURNING status;
+        RETURNING TRUE;
         """, (key, target, fencing_token))
 
         journey_result = await cur.fetchone()
@@ -158,7 +158,7 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
         WHERE key = %s
             AND target = %s
             AND status = 'executing'
-        RETURNING 1;
+        RETURNING TRUE;
         """, (key, target))
 
         ledger_success = await cur.fetchone() is not None
@@ -173,7 +173,7 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
           AND target = %s
           AND fencing_token = %s
           AND status = 'executing'
-        RETURNING 1;
+        RETURNING TRUE;
         """, (serialized_result, key, target, fencing_token))
 
         journey_success = await cur.fetchone() is not None
@@ -195,7 +195,7 @@ async def abandon(conn, key, *, target, fencing_token):
             AND target = %s
             AND fencing_token = %s
             AND status = 'executing'
-        RETURNING 1;
+        RETURNING TRUE;
         """, (key, target, fencing_token))
         success = await cur.fetchone() is not None
 
