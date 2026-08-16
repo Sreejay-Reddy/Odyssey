@@ -17,17 +17,20 @@ type journeyMetadata struct {
 	response any 
 }
 
-type execute struct{
+type execution struct{
 	key string
 	target string
 	ownerID string
-	ttlMS int
+	ttlMS int64
+	input any
 
 	conn *pgx.Conn
 	metadata journeyMetadata
 }
 
-func (e *execute) acquire(ctx context.Context) (bool, error) {
+func (e *execution) acquire(ctx context.Context) (bool, error) {
+	e.ownerID = getOwnerID()
+
 	tx, err := e.conn.Begin(ctx)
 
 	if err != nil {
@@ -111,7 +114,7 @@ func (e *execute) acquire(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (e *execute) startExecution(ctx context.Context) (bool, error){
+func (e *execution) startExecution(ctx context.Context) (bool, error){
 	tx, err := e.conn.Begin(ctx)
 
 	if err != nil {
@@ -171,7 +174,7 @@ func (e *execute) startExecution(ctx context.Context) (bool, error){
 	return true, nil
 }
 
-func (e *execute) complete(ctx context.Context) (bool, error){
+func (e *execution) complete(ctx context.Context) (bool, error){
 	tx, err := e.conn.Begin(ctx)
 
 	if err != nil {
@@ -234,7 +237,7 @@ func (e *execute) complete(ctx context.Context) (bool, error){
 	return true, nil
 }
 
-func (e *execute) abandon(ctx context.Context) (bool, error){
+func (e *execution) abandon(ctx context.Context) (bool, error){
 	tx, err := e.conn.Begin(ctx)
 
 	if err != nil {
