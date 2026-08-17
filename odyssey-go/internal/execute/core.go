@@ -22,7 +22,7 @@ type execution struct{
 	target string
 	ownerID string
 	ttlMS int64
-	input any
+	input []byte
 
 	conn *pgx.Conn
 	metadata journeyMetadata

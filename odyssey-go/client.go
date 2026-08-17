@@ -2,7 +2,9 @@ package odyssey
 
 import (
     "context"
+
     "github.com/jackc/pgx/v5"
+    "odyssey-go/internal/registry"
 )
 
 type Client struct{
@@ -19,7 +21,7 @@ func (c *Client) connect(ctx context.Context) (*pgx.Conn, error) {
     return pgx.Connect(ctx, c.dbURL)
 }
 
-func (c *Client) initDB(ctx context.Context) error{
+func (c *Client) initDB(ctx context.Context) error {
     conn, err := c.connect(ctx)
     if err != nil{
         return err
@@ -38,4 +40,8 @@ func (c *Client) initDB(ctx context.Context) error{
     }
 
     return tx.Commit(ctx)
+}
+
+func (c *Client) Register(target string, fn any, ttlMS int64) error {
+    return registry.Register(target, fn, ttlMS)
 }

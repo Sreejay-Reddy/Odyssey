@@ -6,16 +6,15 @@ import (
 	"runtime"
 )
 
-type registered struct {
-    target       string
-    functionName string
-    fn           any
-    ttlMS        int
+type Registered struct {
+    Target       string
+    FunctionName string
+    Fn           any
+    TTLMS        int64
 }
+var registry = make(map[string]Registered)
 
-var registry = make(map[string]registered)
-
-func Register(target string, fn any, ttlMS int) error {
+func Register(target string, fn any, ttlMS int64) error {
     value := reflect.ValueOf(fn)
 
     if !value.IsValid() || value.Kind() != reflect.Func {
@@ -30,17 +29,17 @@ func Register(target string, fn any, ttlMS int) error {
         return errors.New("target already registered")
     }
 
-    registry[target] = registered{
-        target:       target,
-        functionName: runtime.FuncForPC(value.Pointer()).Name(),
-        fn:           fn,
-        ttlMS:        ttlMS,
+    registry[target] = Registered{
+        Target:       target,
+        FunctionName: runtime.FuncForPC(value.Pointer()).Name(),
+        Fn:           fn,
+        TTLMS:        ttlMS,
     }
 
     return nil
 }
 
-func Get(target string) (registered, bool) {
+func Get(target string) (Registered, bool) {
     value, exists := registry[target]
     return value, exists
 }
