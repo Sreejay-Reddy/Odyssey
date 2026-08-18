@@ -121,7 +121,7 @@ class Odyssey:
             
             if (step.target not in registry 
                 and "default" not in registry
-                and step.delegate is not None):
+                and step.delegate is None):
                 raise ValueError(
                     f"Unknown target '{step.target}'. "
                     "No default target configuration exists in odyssey.yaml. "
