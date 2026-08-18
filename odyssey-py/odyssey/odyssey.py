@@ -119,10 +119,13 @@ class Odyssey:
                     "target cannot be empty."
                 )
             
-            if step.target not in registry and "default" not in registry:
+            if (step.target not in registry 
+                and "default" not in registry
+                and step.delegate is not None):
                 raise ValueError(
                     f"Unknown target '{step.target}'. "
-                    "No default target configuration exists in odyssey.yaml."
+                    "No default target configuration exists in odyssey.yaml. "
+                    "and the Step is not delegated"
                 )
 
         services = self.config.get("services", {})

@@ -21,7 +21,7 @@ func (c *Client) connect(ctx context.Context) (*pgx.Conn, error) {
     return pgx.Connect(ctx, c.dbURL)
 }
 
-func (c *Client) initDB(ctx context.Context) error {
+func (c *Client) InitDB(ctx context.Context) error {
     conn, err := c.connect(ctx)
     if err != nil{
         return err
@@ -44,4 +44,12 @@ func (c *Client) initDB(ctx context.Context) error {
 
 func (c *Client) Register(target string, fn any, ttlMS int64) error {
     return registry.Register(target, fn, ttlMS)
+}
+
+func (c *Client) Serve(addr string) error {
+    server := Server{
+        client: c,
+    }
+
+    return server.Serve(addr)
 }
