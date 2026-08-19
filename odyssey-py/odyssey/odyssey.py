@@ -105,8 +105,6 @@ class Odyssey:
         if len(targets) != len(set(targets)):
             raise ValueError("step targets must be unique")
 
-        registry = self.config.get("registry", {})
-
         for step in steps:
 
             if not isinstance(step.target, str):
@@ -119,13 +117,9 @@ class Odyssey:
                     "target cannot be empty."
                 )
             
-            if (step.target not in registry 
-                and "default" not in registry
-                and step.delegate is None):
+            if step.delegate is None and not self._register.exists(step.target):
                 raise ValueError(
-                    f"Unknown target '{step.target}'. "
-                    "No default target configuration exists in odyssey.yaml. "
-                    "and the Step is not delegated"
+                    f"Unknown target '{step.target}' and the Step is not delegated"
                 )
 
         services = self.config.get("services", {})
