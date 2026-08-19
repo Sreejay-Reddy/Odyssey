@@ -4,6 +4,8 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
+
+    "odyssey-go/internal/config"
 )
 
 type Registered struct {
@@ -14,7 +16,7 @@ type Registered struct {
 }
 var registry = make(map[string]Registered)
 
-func Register(target string, fn any, ttlMS int64) error {
+func Register(cfg config.Config, target string, fn any, ttlMS int64) error {
     value := reflect.ValueOf(fn)
 
     if !value.IsValid() || value.Kind() != reflect.Func {
@@ -27,6 +29,12 @@ func Register(target string, fn any, ttlMS int64) error {
 
     if _, exists := registry[target]; exists {
         return errors.New("target already registered")
+    }
+
+    if _, exists := cfg.Registry["default"]; !exists {
+        if _, exists := cfg.Registry[target]; !exists {
+            return errors.New("target does not exist in odyssey.yaml and no default is defined")
+        }
     }
 
     registry[target] = Registered{
