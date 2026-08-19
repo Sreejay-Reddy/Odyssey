@@ -157,7 +157,7 @@ func (e *execution) startExecution(ctx context.Context) (bool, error){
 		e.key,
 		e.target,
 		e.metadata.fencingToken,
-	).Scan(new(bool))
+	).Scan(new(string))
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
