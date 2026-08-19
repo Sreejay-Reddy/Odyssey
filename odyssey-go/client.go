@@ -4,16 +4,20 @@ import (
     "context"
 
     "github.com/jackc/pgx/v5"
+    "odyssey-go/internal/config"
+    "odyssey-go/internal/buildledger"
     "odyssey-go/internal/registry"
 )
 
 type Client struct{
 	dbURL string
+    config config.Config
 }
 
-func NewClient(dbURL string) *Client {
+func NewClient(dbURL string, cfg config.Config) *Client {
     return &Client{
         dbURL: dbURL,
+        config: cfg,
     }
 }
 
@@ -43,7 +47,28 @@ func (c *Client) InitDB(ctx context.Context) error {
 }
 
 func (c *Client) Register(target string, fn any, ttlMS int64) error {
-    return registry.Register(target, fn, ttlMS)
+    return registry.Register(c.config, target, fn, ttlMS)
+}
+
+func (c *Client) BuildLedger(
+    ctx context.Context, 
+    key string, 
+    steps []buildledger.Step) (error) {
+        conn, err := c.connect(ctx)
+        if err != nil {
+            return err
+        }
+        defer conn.Close(ctx)
+
+        _ , err = buildledger.BuildLedger(
+            ctx,
+            conn,
+            c.config,
+            key, 
+            steps,
+        )
+
+        return err
 }
 
 func (c *Client) Serve(addr string) error {
