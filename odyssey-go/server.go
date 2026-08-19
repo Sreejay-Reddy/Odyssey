@@ -32,48 +32,67 @@ func (s *Server) Serve(addr string) error {
 }
 
 func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
-    var req ExecuteRequest
-    ctx := r.Context()
+	var req ExecuteRequest
+	ctx := r.Context()
 
-    conn, err := s.client.connect(ctx)
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid JSON payload.", http.StatusBadRequest)
+		return
+	}
 
-    err = json.NewDecoder(r.Body).Decode(&req)
-    if err != nil {
-        http.Error(w, "Invalid JSON payload.", http.StatusBadRequest)
-        return
-    }
+	if req.Key == "" {
+		http.Error(w, "Missing key.", http.StatusBadRequest)
+		return
+	}
 
-    if req.Key == "" {
-        http.Error(w, "Missing key.", http.StatusBadRequest)
-        return
-    }
+	if req.Target == "" {
+		http.Error(w, "Missing target.", http.StatusBadRequest)
+		return
+	}
 
-    if req.Target == "" {
-        http.Error(w, "Missing target.", http.StatusBadRequest)
-        return
-    }
+	conn, err := s.client.connect(ctx)
+	if err != nil {
+		http.Error(
+			w,
+			"Failed to connect to database.",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+	defer conn.Close(ctx)
 
-    response, success, err := execute.Execute(ctx, conn, req.Key, req.Target)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	response, success, err := execute.Execute(
+		ctx,
+		conn,
+		req.Key,
+		req.Target,
+	)
 
-    if !success {
-        http.Error(w, "Execution was not completed.", http.StatusConflict)
-        return
-    }
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
+	if !success {
+		http.Error(
+			w,
+			"Execution was not completed.",
+			http.StatusConflict,
+		)
+		return
+	}
 
-    if err := json.NewEncoder(w).Encode(map[string]any{
-        "status": "completed",
-        "key":    req.Key,
-        "target": req.Target,
-        "result": response,
-    }); err != nil {
-        return
-    }
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(map[string]any{
+		"status": "completed",
+		"key":    req.Key,
+		"target": req.Target,
+		"result": response,
+	}); err != nil {
+		return
+	}
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

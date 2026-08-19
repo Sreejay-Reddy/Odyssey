@@ -29,6 +29,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # --------------------
+      # Python
+      # --------------------
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -36,7 +40,7 @@ jobs:
           cache: pip
           cache-dependency-path: odyssey-py/pyproject.toml
 
-      - name: Install package
+      - name: Install Python package
         working-directory: odyssey-py
         run: |
           python -m pip install --upgrade pip
@@ -49,8 +53,27 @@ jobs:
         run: |
           python -c "from odyssey import Odyssey; Odyssey().init_db()"
 
-      - name: Run tests
+      - name: Run Python tests
+        working-directory: odyssey-py
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
           pytest
+
+      # --------------------
+      # Go
+      # --------------------
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+          cache-dependency-path: odyssey-go/go.sum
+
+      - name: Run Go tests
+        working-directory: odyssey-go
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
+        run: |
+          go test ./...
