@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"runtime"
 
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
 type Registered struct {
@@ -16,7 +16,7 @@ type Registered struct {
 }
 var registry = make(map[string]Registered)
 
-func Register(cfg config.Config, target string, fn any, ttlMS int64) error {
+func Register(cfg configutil.Config, target string, fn any, ttlMS int64) error {
     value := reflect.ValueOf(fn)
 
     if !value.IsValid() || value.Kind() != reflect.Func {
