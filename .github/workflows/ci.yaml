@@ -50,7 +50,6 @@ jobs:
           python -c "from odyssey import Odyssey; Odyssey().init_db()"
 
       - name: Run Python tests
-        working-directory: odyssey-py
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_py
         run: |
