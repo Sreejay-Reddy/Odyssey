@@ -49,7 +49,7 @@ jobs:
         run: |
           python -c "from odyssey import Odyssey; Odyssey().init_db()"
 
-      - name: Run tests
+      - name: Run Python tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
@@ -67,7 +67,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
-          go run .
+          go run ./cmd/initdb
 
       - name: Run Go tests
         working-directory: odyssey-go

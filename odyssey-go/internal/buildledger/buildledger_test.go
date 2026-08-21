@@ -133,6 +133,8 @@ func TestBuildLedgerRejectsDuplicateTargets(t *testing.T) {
 	conn := testConn(t)
 	cfg := testConfig()
 
+	cleanDatabase(t, conn)
+
 	ok, err := BuildLedger(
 		context.Background(),
 		conn,
@@ -631,8 +633,6 @@ func TestBuildLedgerDuplicateIsAtomic(t *testing.T) {
 		t.Fatalf("unexpected initial error: %v", err)
 	}
 
-	// Attempt to create the same ledger/delivery rows again.
-	// This should fail if the schema enforces uniqueness.
 	_, err = BuildLedger(
 		context.Background(),
 		conn,
