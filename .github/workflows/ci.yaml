@@ -97,4 +97,4 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_go
         run: |
-          go test ./... -count=1
+          go test ./... -count=1 -p 1
