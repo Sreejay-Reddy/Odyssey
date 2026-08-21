@@ -4,9 +4,9 @@ import (
     "context"
 
     "github.com/jackc/pgx/v5"
-    "odyssey-go/internal/config"
-    "odyssey-go/internal/buildledger"
-    "odyssey-go/internal/registry"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
 type Client struct{

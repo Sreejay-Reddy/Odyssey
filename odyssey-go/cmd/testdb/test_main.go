@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"odyssey-go"
-	"odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 )
 
 func main() {

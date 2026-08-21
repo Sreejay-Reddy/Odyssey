@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"odyssey-go/internal/config"
-	"odyssey-go/internal/registry"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 	"github.com/jackc/pgx/v5"
 )
 

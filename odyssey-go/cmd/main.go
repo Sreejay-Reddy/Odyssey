@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"odyssey-go"
-	"odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 )
 
 func main() {
