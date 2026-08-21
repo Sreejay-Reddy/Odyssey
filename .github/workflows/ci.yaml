@@ -16,11 +16,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: odyssey_py
+          POSTGRES_DB: odyssey
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d odyssey_py"
+          --health-cmd "pg_isready -U postgres -d odyssey"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -45,13 +45,13 @@ jobs:
       - name: Initialize Odyssey database
         working-directory: odyssey-py
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_py
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
           python -c "from odyssey import Odyssey; Odyssey().init_db()"
 
       - name: Run Python tests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_py
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
           pytest
 
