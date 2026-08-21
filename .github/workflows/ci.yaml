@@ -67,7 +67,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
         run: |
-          go run ./cmd
+          go run ./cmd/testdb
 
       - name: Run Go tests
         working-directory: odyssey-go
