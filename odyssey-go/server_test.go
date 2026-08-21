@@ -11,7 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
@@ -26,9 +26,9 @@ func testClient(t *testing.T) *Client {
 
 	return &Client{
 		dbURL: dbURL,
-		config: config.Config{
+		config: configutil.Config{
 			Services: map[string]string{},
-			Registry: map[string]config.TargetConfig{
+			Registry: map[string]configutil.TargetConfig{
 				"payment": {},
 			},
 		},
@@ -73,7 +73,7 @@ func cleanServerDatabase(t *testing.T, conn *pgx.Conn) {
 	}
 }
 
-func registerServerTarget(t *testing.T, cfg config.Config, target string) {
+func registerServerTarget(t *testing.T, cfg configutil.Config, target string) {
 	t.Helper()
 
 	registry.Register(

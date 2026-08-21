@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/sreejay-reddy/odyssey/odyssey-go"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("DATABASE_URL is required")
 	}
 
-	cfg := config.Config{}
+	cfg := configutil.Config{}
 
 	client := odyssey.NewClient(dbURL, cfg)
 

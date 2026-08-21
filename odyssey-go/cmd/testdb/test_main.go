@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/sreejay-reddy/odyssey/odyssey-go"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	client := odyssey.NewClient(dbURL, config.Config{})
+	client := odyssey.NewClient(dbURL, configutil.Config{})
 
 	if err := client.InitDB(ctx); err != nil {
 		log.Fatal(err)

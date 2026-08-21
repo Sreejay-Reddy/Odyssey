@@ -3,17 +3,17 @@ package registry
 import (
 	"testing"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
-func testConfig(targets ...string) config.Config {
-	registryConfig := make(map[string]config.TargetConfig)
+func testConfig(targets ...string) configutil.Config {
+	registryConfig := make(map[string]configutil.TargetConfig)
 
 	for _, target := range targets {
-		registryConfig[target] = config.TargetConfig{}
+		registryConfig[target] = configutil.TargetConfig{}
 	}
 
-	return config.Config{
+	return configutil.Config{
 		Registry: registryConfig,
 	}
 }
@@ -211,8 +211,8 @@ func TestRegisterTargetDefinedInConfig(t *testing.T) {
 func TestRegisterTargetNotDefinedWithoutDefault(t *testing.T) {
 	registry = make(map[string]Registered)
 
-	cfg := config.Config{
-		Registry: map[string]config.TargetConfig{},
+	cfg := configutil.Config{
+		Registry: map[string]configutil.TargetConfig{},
 	}
 
 	err := Register(
@@ -238,8 +238,8 @@ func TestRegisterTargetNotDefinedWithoutDefault(t *testing.T) {
 func TestRegisterAllowsTargetWithDefault(t *testing.T) {
 	registry = make(map[string]Registered)
 
-	cfg := config.Config{
-		Registry: map[string]config.TargetConfig{
+	cfg := configutil.Config{
+		Registry: map[string]configutil.TargetConfig{
 			"default": {},
 		},
 	}

@@ -1,14 +1,14 @@
 package buildledger
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 	"github.com/jackc/pgx/v5"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
 type Step struct {
@@ -17,7 +17,7 @@ type Step struct {
     Input    any
 }
 
-func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg config.Config, key string, steps []Step) (bool, error){
+func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key string, steps []Step) (bool, error){
 
 	if key == "" {
 		return false, errors.New("key cannot be empty")

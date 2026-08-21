@@ -5,17 +5,17 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
-func clientTestConfig() config.Config {
-	return config.Config{
+func clientTestConfig() configutil.Config {
+	return configutil.Config{
 		Services: map[string]string{
 			"payments": "http://localhost:9000",
 		},
-		Registry: map[string]config.TargetConfig{
+		Registry: map[string]configutil.TargetConfig{
 			"payment": {},
 			"order":   {},
 		},

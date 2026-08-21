@@ -4,17 +4,17 @@ import (
     "context"
 
     "github.com/jackc/pgx/v5"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
     "github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
     "github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
 type Client struct{
 	dbURL string
-    config config.Config
+    config configutil.Config
 }
 
-func NewClient(dbURL string, cfg config.Config) *Client {
+func NewClient(dbURL string, cfg configutil.Config) *Client {
     return &Client{
         dbURL: dbURL,
         config: cfg,

@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 
 	"github.com/jackc/pgx/v5"
@@ -51,20 +51,20 @@ func cleanDatabase(t *testing.T, conn *pgx.Conn) {
 	}
 }
 
-func testConfig() config.Config {
-	return config.Config{
+func testConfig() configutil.Config {
+	return configutil.Config{
 		Services: map[string]string{
 			"payments": "http://localhost:8001",
 			"email":    "http://localhost:8002",
 		},
-		Registry: map[string]config.TargetConfig{
+		Registry: map[string]configutil.TargetConfig{
 			"payment": {},
 			"email":   {},
 		},
 	}
 }
 
-func testRegisterTarget(t *testing.T, cfg config.Config, target string) {
+func testRegisterTarget(t *testing.T, cfg configutil.Config, target string) {
 	t.Helper()
 
 	registry.Register(

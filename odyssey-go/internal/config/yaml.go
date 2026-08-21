@@ -6,29 +6,8 @@ import (
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
-
-
-type Config struct {
-    Services map[string]string `yaml:"services"`
-    Registry map[string]TargetConfig `yaml:"registry"`
-}
-
-type TargetConfig struct {
-    Retry     RetryConfig    `yaml:"retry"`
-    OnFailure *FailureConfig `yaml:"on_failure,omitempty"`
-}
-
-type RetryConfig struct {
-    Policy   string `yaml:"policy"`
-    Attempts int    `yaml:"attempts,omitempty"`
-    Delay    string `yaml:"delay"`
-}
-
-type FailureConfig struct {
-    Notify        string `yaml:"notify"`
-    WaitForInput  bool   `yaml:"wait_for_input"`
-}
 
 func FindYAML() (string, error) {
 	dir, err := os.Getwd()
@@ -55,16 +34,16 @@ func FindYAML() (string, error) {
 	return "", errors.New("odyssey.yaml not found")
 }
 
-func ReadYAML(path string) (Config, error) {
+func ReadYAML(path string) (configutil.Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Config{}, err
+		return configutil.Config{}, err
 	}
 
-	var config Config
+	var config configutil.Config
 
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return Config{}, err
+		return configutil.Config{}, err
 	}
 
 	return config, nil
