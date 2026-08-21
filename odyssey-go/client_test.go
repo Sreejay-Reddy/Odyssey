@@ -382,7 +382,6 @@ func TestClientBuildLedgerDelegated(t *testing.T) {
 	}
 
 	t.Logf("test connection database: %s", dbName)
-	defer conn.Close(ctx)
 
 	var ledgerCount int
 
