@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  python-test:
     runs-on: ubuntu-latest
 
     services:
@@ -16,11 +16,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: odyssey
+          POSTGRES_DB: odyssey_py
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d odyssey"
+          --health-cmd "pg_isready -U postgres -d odyssey_py"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -45,33 +45,57 @@ jobs:
       - name: Initialize Odyssey database
         working-directory: odyssey-py
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_py
         run: |
           python -c "from odyssey import Odyssey; Odyssey().init_db()"
 
       - name: Run Python tests
+        working-directory: odyssey-py
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_py
         run: |
           pytest
+
+
+  go-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: odyssey_go
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d odyssey_go"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.25.5"
           cache: true
           cache-dependency-path: odyssey-go/go.sum
 
-      - name: Initialize Odyssey Go database
+      - name: Reset and initialize Go test database
         working-directory: odyssey-go
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_go
         run: |
           go run ./cmd/testdb
 
       - name: Run Go tests
         working-directory: odyssey-go
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/odyssey_go
         run: |
-          go test ./...
+          go test ./... -count=1
