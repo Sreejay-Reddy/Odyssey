@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"runtime"
 
-    "odyssey-go/internal/config"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 )
 
 type Registered struct {

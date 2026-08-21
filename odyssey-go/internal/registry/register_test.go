@@ -3,7 +3,7 @@ package registry
 import (
 	"testing"
 
-	"odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 )
 
 func testConfig(targets ...string) config.Config {

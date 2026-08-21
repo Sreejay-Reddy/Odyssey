@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"odyssey-go/internal/execute"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/execute"
 )
 
 type Server struct {

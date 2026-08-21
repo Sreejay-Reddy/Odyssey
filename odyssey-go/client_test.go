@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"odyssey-go/internal/buildledger"
-	"odyssey-go/internal/config"
-	"odyssey-go/internal/registry"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
 func clientTestConfig() config.Config {
