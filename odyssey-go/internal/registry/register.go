@@ -51,3 +51,7 @@ func Get(target string) (Registered, bool) {
     value, exists := registry[target]
     return value, exists
 }
+
+func Reset() {
+	registry = make(map[string]Registered)
+}

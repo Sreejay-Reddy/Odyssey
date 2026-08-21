@@ -57,10 +57,23 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 		return nil, false, err
 	}
 
+	fnValue := reflect.ValueOf(registered.Fn)
+	fnType := fnValue.Type()
+
+	if fnType.NumOut() != 2 {
+		return nil, false, errors.New(
+				"registered function must return (response, error)",
+		)
+	}
+
 	if found {
 		inputJSON := e.input
-		fnValue := reflect.ValueOf(registered.Fn)
-		fnType := fnValue.Type()
+
+		if fnType.NumIn() != 2 {
+			return nil, false, errors.New(
+				"input exists but registered function does not accept input",
+			)
+		}
 
 		inputValue, err := decodeInput(
 			inputJSON,
@@ -92,7 +105,11 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 	}
 
 	if !found {
-		fnValue := reflect.ValueOf(registered.Fn)
+		if fnType.NumIn() != 1 {
+        	return nil, false, errors.New(
+            	"no input exists but registered function requires input",
+        	)
+    	}
 
 		results := fnValue.Call([]reflect.Value{
 			reflect.ValueOf(ctx),
