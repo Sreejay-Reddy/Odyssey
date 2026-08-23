@@ -1,0 +1,35 @@
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-subtle: #f5f7f5;
+
+  --text: #171917;
+  --text-muted: #727772;
+
+  --border: #e4e6e4;
+  --border-strong: #aeb3ae;
+
+  --success: #2f8f4e;
+  --success-border: #b7d7bf;
+
+  --warning: #d99422;
+  --error: #d84a4a;
+}
+
+[data-theme="dark"] {
+  --bg: #0d0f0e;
+  --surface: #111412;
+  --surface-subtle: #171a18;
+
+  --text: #e8ebe8;
+  --text-muted: #858b86;
+
+  --border: #292d2a;
+  --border-strong: #686f69;
+
+  --success: #55b96f;
+  --success-border: #356941;
+
+  --warning: #e0a33b;
+  --error: #ed6666;
+}

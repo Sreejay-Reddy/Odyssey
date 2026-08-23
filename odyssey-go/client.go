@@ -1,12 +1,13 @@
 package odyssey
 
 import (
-    "context"
+	"context"
 
-    "github.com/jackc/pgx/v5"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
+	"github.com/jackc/pgx/v5"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
 type Client struct{
@@ -77,4 +78,27 @@ func (c *Client) Serve(addr string) error {
     }
 
     return server.Serve(addr)
+}
+
+func LoadConfig() (configutil.Config, error) {
+    path, err := config.FindYAML()
+    if err != nil {
+        return configutil.Config{}, err
+    }
+
+    configyaml, err := config.ReadYAML(path)
+    if err != nil {
+        return configutil.Config{}, err
+    }
+
+    return configyaml, nil
+}
+
+func LoadConfigFrom(path string) (configutil.Config, error){
+    configyaml, err := config.ReadYAML(path)
+    if err != nil {
+        return configutil.Config{}, err
+    }
+
+    return configyaml, nil
 }

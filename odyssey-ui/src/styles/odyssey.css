@@ -1,0 +1,62 @@
+/* --------------------------------------------------
+   Odyssey visual primitives
+-------------------------------------------------- */
+
+.odyssey-panel {
+  position: relative;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.success {
+  color: var(--success);
+}
+
+.warning {
+  color: var(--warning);
+}
+
+.error {
+  color: var(--error);
+}
+
+.odyssey-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+
+  background:
+    repeating-linear-gradient(
+      to right,
+      var(--border-strong) 0,
+      var(--border-strong) 6px,
+      transparent 6px,
+      transparent 11px
+    ) top left / 100% 1px no-repeat,
+
+    repeating-linear-gradient(
+      to right,
+      var(--border-strong) 0,
+      var(--border-strong) 6px,
+      transparent 6px,
+      transparent 11px
+    ) bottom left / 100% 1px no-repeat,
+
+    repeating-linear-gradient(
+      to bottom,
+      var(--border-strong) 0,
+      var(--border-strong) 6px,
+      transparent 6px,
+      transparent 11px
+    ) top left / 1px 100% no-repeat,
+
+    repeating-linear-gradient(
+      to bottom,
+      var(--border-strong) 0,
+      var(--border-strong) 6px,
+      transparent 6px,
+      transparent 11px
+    ) top right / 1px 100% no-repeat;
+}
