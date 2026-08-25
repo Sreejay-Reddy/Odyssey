@@ -9,33 +9,35 @@ from .environment import load_environment
 from .db import init_db
 
 
+from pathlib import Path
+from pprint import pprint
+
+
 def print_startup(odyssey):
     print()
-    print("=" * 60)
-    print("                         ODYSSEY")
-    print("=" * 60)
+    print("╔════════════════════════════════════════════════════════════╗")
+    print("║                         ODYSSEY                            ║")
+    print("╚════════════════════════════════════════════════════════════╝")
 
-    # Config
+    # Configuration
     config_path = getattr(odyssey, "config_path", None)
 
+    print()
+    print("Configuration")
+    print("────────────────────────────────────────────────────────────")
+
     if config_path and Path(config_path).exists():
-        print()
-        print("Configuration")
-        print("-" * 60)
-        print(f"odyssey.yaml: FOUND")
-        print(f"path: {config_path}")
+        print("odyssey.yaml    FOUND")
+        print(f"path            {config_path}")
         print()
         pprint(odyssey.config, sort_dicts=False)
     else:
-        print()
-        print("Configuration")
-        print("-" * 60)
-        print("odyssey.yaml: NOT FOUND")
+        print("odyssey.yaml    NOT FOUND")
 
-    # Registry
+    # Registered targets
     print()
     print("Registered Targets")
-    print("-" * 60)
+    print("────────────────────────────────────────────────────────────")
 
     targets = odyssey._register.targets()
 
@@ -44,15 +46,37 @@ def print_startup(odyssey):
     else:
         for registered in targets:
             print(
-                f"{registered.target:<30} "
+                f"✓ {registered.target:<30}"
                 f"{registered.function_name}"
             )
 
     print()
     print(f"Total targets: {len(targets)}")
 
+    # Services
+    services = odyssey.config.get("services", {})
+
     print()
-    print("=" * 60)
+    print("Configured Services")
+    print("────────────────────────────────────────────────────────────")
+
+    if not services:
+        print("No services configured.")
+    else:
+        for name, url in services.items():
+            print(f"✓ {name:<30}{url}")
+
+    # Runtime
+    print()
+    print("Runtime")
+    print("────────────────────────────────────────────────────────────")
+    print(f"Database        {'configured' if odyssey.db_url else 'not configured'}")
+    print(f"Namespace       {odyssey.namespace or 'default'}")
+
+    print()
+    print("Odyssey is ready.")
+    print()
+    print("═" * 60)
     print()
 
 def init():
@@ -96,7 +120,7 @@ def init():
 def main():
     parser = argparse.ArgumentParser(
         prog="odyssey",
-        description="Odyssey distributed execution runtime",
+        description="Odyssey is a durable execution engine built around PostgreSQL.",
     )
 
     subparsers = parser.add_subparsers(
