@@ -2,8 +2,10 @@ package execute
 
 import (
 	"context"
-	"time"
+	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -175,6 +177,10 @@ func (e *execution) startExecution(ctx context.Context) (bool, error){
 }
 
 func (e *execution) complete(ctx context.Context) (bool, error){
+	responseJSON, err := json.Marshal(e.metadata.response)
+	if err != nil {
+		return false, err
+	}
 	tx, err := e.conn.Begin(ctx)
 
 	if err != nil {
@@ -216,7 +222,7 @@ func (e *execution) complete(ctx context.Context) (bool, error){
           AND fencing_token = $4
           AND status = 'executing'
         RETURNING TRUE;`,
-		e.metadata.response,
+		responseJSON,
 		e.key,
 		e.target,
 		e.metadata.fencingToken,
