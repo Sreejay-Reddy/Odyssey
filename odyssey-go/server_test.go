@@ -281,12 +281,21 @@ func TestExecuteSuccessfulExecution(t *testing.T) {
 
 	client := testClient(t)
 
+	type PaymentInput struct {
+		Amount float64 `json:"amount"`
+	}
+
+	type PaymentResponse struct {
+		Status string  `json:"status"`
+		Amount float64 `json:"amount"`
+	}
+
 	err := client.Register(
 		"payment",
-		func(ctx context.Context, input map[string]any) (any, error) {
-			return map[string]any{
-				"status": "paid",
-				"amount": input["amount"],
+		func(ctx context.Context, input PaymentInput) (PaymentResponse, error) {
+			return PaymentResponse{
+				Status: "paid",
+				Amount: input.Amount,
 			}, nil
 		},
 		10000,
@@ -368,6 +377,25 @@ func TestExecuteSuccessfulExecution(t *testing.T) {
 		t.Fatalf(
 			"expected payment, got %v",
 			response["target"],
+		)
+	}
+
+	result, ok := response["result"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected result object, got %T", response["result"])
+	}
+
+	if result["status"] != "paid" {
+		t.Fatalf(
+			"expected result status paid, got %v",
+			result["status"],
+		)
+	}
+
+	if result["amount"] != float64(250) {
+		t.Fatalf(
+			"expected result amount 250, got %v",
+			result["amount"],
 		)
 	}
 }
