@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
@@ -265,7 +265,7 @@ func TestClientBuildLedger(t *testing.T) {
 	err = client.BuildLedger(
 		ctx,
 		"order-1",
-		[]buildledger.Step{
+		[]types.Step{
 			{
 				Target: "payment",
 				Input: map[string]any{
@@ -346,7 +346,7 @@ func TestClientBuildLedgerDelegated(t *testing.T) {
 	err := client.BuildLedger(
 		ctx,
 		"order-2",
-		[]buildledger.Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -459,7 +459,7 @@ func TestClientBuildLedgerInvalidKey(t *testing.T) {
 	err := client.BuildLedger(
 		context.Background(),
 		"",
-		[]buildledger.Step{
+		[]types.Step{
 			{
 				Target: "payment",
 			},
@@ -495,7 +495,7 @@ func TestClientBuildLedgerUnknownTarget(t *testing.T) {
 	err := client.BuildLedger(
 		context.Background(),
 		"order-1",
-		[]buildledger.Step{
+		[]types.Step{
 			{
 				Target: "unknown",
 			},
@@ -515,7 +515,7 @@ func TestClientBuildLedgerUnknownDelegate(t *testing.T) {
 	err := client.BuildLedger(
 		context.Background(),
 		"order-1",
-		[]buildledger.Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "unknown-service",

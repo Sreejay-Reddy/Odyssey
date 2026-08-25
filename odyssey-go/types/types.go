@@ -1,4 +1,4 @@
-package odyssey
+package types
 
 type Step struct {
     Target   string

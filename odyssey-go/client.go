@@ -6,8 +6,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 )
 
 type Client struct{
@@ -54,7 +55,7 @@ func (c *Client) Register(target string, fn any, ttlMS int64) error {
 func (c *Client) BuildLedger(
     ctx context.Context, 
     key string, 
-    steps []buildledger.Step) (error) {
+    steps []types.Step) (error) {
         conn, err := c.connect(ctx)
         if err != nil {
             return err
