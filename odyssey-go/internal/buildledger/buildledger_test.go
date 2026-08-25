@@ -9,6 +9,7 @@ import (
 
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -86,7 +87,7 @@ func TestBuildLedgerRejectsEmptyKey(t *testing.T) {
 		conn,
 		cfg,
 		"",
-		[]Step{
+		[]types.Step{
 			{Target: "payment"},
 		},
 	)
@@ -140,7 +141,7 @@ func TestBuildLedgerRejectsDuplicateTargets(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{Target: "payment"},
 			{Target: "payment"},
 		},
@@ -168,7 +169,7 @@ func TestBuildLedgerRejectsEmptyTarget(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{Target: "   "},
 		},
 	)
@@ -195,7 +196,7 @@ func TestBuildLedgerRejectsUnknownUndelegatedTarget(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{Target: "unknown"},
 		},
 	)
@@ -227,7 +228,7 @@ func TestBuildLedgerAllowsRegisteredTarget(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{Target: "payment"},
 		},
 	)
@@ -252,7 +253,7 @@ func TestBuildLedgerAllowsDelegatedTarget(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -278,7 +279,7 @@ func TestBuildLedgerRejectsUnknownDelegate(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "unknown-service",
@@ -312,7 +313,7 @@ func TestBuildLedgerPersistsLocalStep(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target: "payment",
 				Input: map[string]any{
@@ -392,7 +393,7 @@ func TestBuildLedgerPersistsDelegatedStep(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -485,7 +486,7 @@ func TestBuildLedgerDoesNotCreateDeliveryForLocalStep(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{Target: "payment"},
 		},
 	)
@@ -529,7 +530,7 @@ func TestBuildLedgerPersistsMultipleSteps(t *testing.T) {
 	testRegisterTarget(t, cfg, "payment")
 	testRegisterTarget(t, cfg, "email")
 
-	steps := []Step{
+	steps := []types.Step{
 		{
 			Target: "payment",
 			Input: map[string]any{
@@ -621,7 +622,7 @@ func TestBuildLedgerDuplicateIsAtomic(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -638,7 +639,7 @@ func TestBuildLedgerDuplicateIsAtomic(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -685,7 +686,7 @@ func TestBuildLedgerTransactionRollback(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -702,7 +703,7 @@ func TestBuildLedgerTransactionRollback(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target:   "payment",
 				Delegate: "payments",
@@ -752,7 +753,7 @@ func TestBuildLedgerContextCancellation(t *testing.T) {
 		conn,
 		cfg,
 		"order-1",
-		[]Step{
+		[]types.Step{
 			{
 				Target: "payment",
 			},

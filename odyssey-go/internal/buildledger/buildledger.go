@@ -7,17 +7,12 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
-type Step struct {
-    Target   string
-    Delegate string
-    Input    any
-}
-
-func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key string, steps []Step) (bool, error){
+func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key string, steps []types.Step) (bool, error){
 
 	if key == "" {
 		return false, errors.New("key cannot be empty")
