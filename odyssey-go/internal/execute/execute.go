@@ -1,12 +1,13 @@
-package execute 
+package execute
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"reflect"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 	"github.com/jackc/pgx/v5"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
 func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (any, bool, error) {
@@ -66,6 +67,22 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 		)
 	}
 
+	errorType := reflect.TypeOf((*error)(nil)).Elem()
+
+	if !fnType.Out(1).Implements(errorType) {
+		return nil, false, errors.New(
+			"registered function must return (response, error)",
+		)
+	}
+
+	responseType := fnType.Out(0)
+
+	if responseType.Kind() != reflect.Struct {
+		return nil, false, errors.New(
+			"registered function response must be a struct",
+		)
+	}
+
 	if found {
 		inputJSON := e.input
 
@@ -75,17 +92,26 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 			)
 		}
 
-		inputValue, err := decodeInput(
-			inputJSON,
-			fnType.In(1),
-		)
+		inputType := fnType.In(1)
+
+		if inputType.Kind() != reflect.Struct {
+			return nil, false, errors.New(
+				"registered function input must be a struct",
+			)
+		}
+
+		inputValue := reflect.New(inputType)
+
+		err := json.Unmarshal(inputJSON, inputValue.Interface())
 		if err != nil {
 			return nil, false, err
 		}
 
+		inputStruct := inputValue.Elem()
+
 		results := fnValue.Call([]reflect.Value{
 			reflect.ValueOf(ctx),
-			inputValue,
+			inputStruct,
 		})
 
 		response := results[0].Interface()

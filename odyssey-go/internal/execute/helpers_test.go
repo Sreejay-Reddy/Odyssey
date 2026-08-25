@@ -256,6 +256,55 @@ func TestFetchInput(t *testing.T) {
 	}
 }
 
+func TestFetchInputNoInput(t *testing.T) {
+	conn := helperTestConn(t)
+	cleanHelperDatabase(t, conn)
+
+	ctx := context.Background()
+
+	_, err := conn.Exec(
+		ctx,
+		`INSERT INTO odyssey_ledger (
+			key,
+			target,
+			mode,
+			input
+		)
+		VALUES ($1, $2, $3, $4)`,
+		"no-input-key",
+		"payment",
+		"local",
+		nil,
+	)
+
+	if err != nil {
+		t.Fatalf(
+			"failed to insert ledger row: %v",
+			err,
+		)
+	}
+
+	e := execution{
+		key:    "no-input-key",
+		target: "payment",
+		conn:   conn,
+	}
+
+	found, err := e.fetchInput(ctx)
+
+	if err != nil {
+		t.Fatalf("fetchInput failed: %v", err)
+	}
+
+	if found {
+		t.Fatal("expected no input to be found")
+	}
+
+	if e.input != nil {
+		t.Fatalf("expected input to be nil, got %v", e.input)
+	}
+}
+
 func TestFetchInputMissing(t *testing.T) {
 	conn := helperTestConn(t)
 	cleanHelperDatabase(t, conn)

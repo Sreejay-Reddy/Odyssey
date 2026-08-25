@@ -54,6 +54,10 @@ func (e *execution) fetchInput(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
+	if e.input == nil {
+		return false, nil
+	}
+
 	return true, nil
 }
 
