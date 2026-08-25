@@ -62,9 +62,15 @@ func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key
 	deliveryRows := make([][]any, 0)
 
 	for _, step := range steps {
-		input, err := json.Marshal(step.Input)
-		if err != nil {
-			return false, err
+		var input any
+
+		if step.Input != nil {
+			inputJSON, err := json.Marshal(step.Input)
+
+			if err != nil {
+				return false, err
+			}
+			input = inputJSON
 		}
 
 		mode := "local"
