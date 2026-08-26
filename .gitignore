@@ -48,4 +48,4 @@ __pycache__/
 .env
 
 # temp
-assets/
+docs/
