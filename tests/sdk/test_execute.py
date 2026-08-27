@@ -1,6 +1,7 @@
 import pytest
 
 from odyssey.execute import Execute
+from odyssey.core import acquire
 
 
 @pytest.mark.asyncio
