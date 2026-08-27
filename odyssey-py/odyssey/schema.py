@@ -37,7 +37,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS odyssey_ledger (
     key TEXT NOT NULL,
     target TEXT NOT NULL,
-    sequence BIGINT NOT NULL
+    sequence BIGINT NOT NULL,
     status odyssey_status NOT NULL DEFAULT 'claimed',
     mode odyssey_execution_mode NOT NULL,
     input JSONB,
