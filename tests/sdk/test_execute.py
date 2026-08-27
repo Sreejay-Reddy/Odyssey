@@ -110,3 +110,68 @@ async def test_execute_failure_abandons(
 
     finally:
         await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_execute_returns_cached_response_for_completed_journey(
+    clean_database,
+    async_connection_factory,
+    ledger,
+):
+    fn = ledger["odyssey"]._register.get("hello").fn
+
+    execution = Execute(
+        get_conn=async_connection_factory,
+        key=ledger["key"],
+        target=ledger["target"],
+        fn=fn,
+        ttl_ms=10000,
+    )
+
+    first = await execution.run()
+
+    assert first.success is True
+    assert first.status == "completed"
+    assert first.response == "Hello, Summer!"
+
+    second = await execution.run()
+
+    assert second.success is True
+    assert second.status == "completed"
+    assert second.response == "Hello, Summer!"
+
+
+@pytest.mark.asyncio
+async def test_execute_does_not_run_when_journey_is_active(
+    clean_database,
+    async_connection_factory,
+    ledger,
+):
+    fn = ledger["odyssey"]._register.get("hello").fn
+
+    conn = await async_connection_factory()
+
+    acquired = await acquire(
+        conn,
+        ledger["key"],
+        target=ledger["target"],
+        owner_id="worker-1",
+        ttl_ms=10000,
+    )
+
+    assert acquired.acquired is True
+
+    execution = Execute(
+        get_conn=async_connection_factory,
+        key=ledger["key"],
+        target=ledger["target"],
+        fn=fn,
+        ttl_ms=10000,
+    )
+
+    result = await execution.run()
+
+    assert result.success is False
+    assert result.status == "claimed"
+
+    await conn.close()

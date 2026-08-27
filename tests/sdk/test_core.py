@@ -1,5 +1,6 @@
 import pytest
 
+from odyssey import Step
 from odyssey.core import (
     acquire,
     complete,
@@ -229,3 +230,175 @@ async def test_abandon(
         row = await cur.fetchone()
 
     assert row[0] is True
+
+
+@pytest.mark.asyncio
+async def test_acquire_preserves_ledger_sequence(
+    clean_database,
+    async_connection,
+    odyssey,
+    hello,
+    unique_key,
+):
+    odyssey.register(
+        target="hello",
+        fn=hello,
+    )
+
+    odyssey.build_ledger(
+        key=unique_key,
+        steps=[
+            Step(
+                "hello",
+                name="Summer",
+            )
+        ],
+    )
+
+    async with async_connection.cursor() as cur:
+        await cur.execute("""
+            SELECT sequence
+            FROM odyssey_ledger
+            WHERE key = %s
+              AND target = %s;
+        """, (
+            unique_key,
+            "hello",
+        ))
+
+        row = await cur.fetchone()
+
+    assert row[0] == 1
+
+@pytest.mark.asyncio
+async def test_executing_journey_cannot_be_reacquired(
+    clean_database,
+    async_connection,
+    ledger,
+):
+    first = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-1",
+    )
+
+    async with async_connection.cursor() as cur:
+        await cur.execute("""
+            UPDATE odyssey_journeys
+            SET status = 'executing'
+            WHERE key = %s
+              AND target = %s;
+        """, (
+            ledger["key"],
+            "hello",
+        ))
+
+    await async_connection.commit()
+
+    second = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-2",
+    )
+
+    assert first.acquired is True
+    assert second.acquired is False
+    assert second.status == "executing"
+
+
+@pytest.mark.asyncio
+async def test_completed_journey_cannot_be_reacquired(
+    clean_database,
+    async_connection,
+    ledger,
+):
+    first = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-1",
+    )
+
+    await complete(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        fencing_token=first.fencing_token,
+        execution_result={
+            "message": "Hello, Summer!",
+        },
+    )
+
+    second = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-2",
+    )
+
+    assert first.acquired is True
+    assert second.acquired is False
+    assert second.status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_abandoned_journey_can_be_reacquired(
+    clean_database,
+    async_connection,
+    ledger,
+):
+    first = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-1",
+    )
+
+    result = await abandon(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        fencing_token=first.fencing_token,
+    )
+
+    assert result.success is True
+
+    second = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-2",
+    )
+
+    assert second.acquired is True
+    assert second.owner_id == "worker-2"
+    assert second.fencing_token > first.fencing_token
+
+
+@pytest.mark.asyncio
+async def test_two_workers_only_one_acquires(
+    clean_database,
+    async_connection,
+    ledger,
+):
+    first = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-1",
+    )
+
+    second = await acquire(
+        async_connection,
+        ledger["key"],
+        target="hello",
+        owner_id="worker-2",
+    )
+
+    assert first.acquired is True
+    assert second.acquired is False
+
+    assert first.owner_id == "worker-1"
+    assert second.owner_id == "worker-1"
