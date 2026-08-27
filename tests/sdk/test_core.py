@@ -92,146 +92,6 @@ async def test_expired_claimed_journey_can_be_reacquired(
     assert second.owner_id == "worker-2"
     assert second.fencing_token > first.fencing_token
 
-
-@pytest.mark.asyncio
-async def test_expired_executing_journey_cannot_be_reacquired(
-    clean_database,
-    async_connection,
-    ledger,
-):
-    acquired = await acquire(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        owner_id="worker-1",
-    )
-
-    await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
-    )
-
-    async with async_connection.cursor() as cur:
-        await cur.execute("""
-            UPDATE odyssey_journeys
-            SET expires_at = NOW() - INTERVAL '1 second'
-            WHERE key = %s
-              AND target = %s;
-        """, (
-            ledger["key"],
-            "hello",
-        ))
-
-    await async_connection.commit()
-
-    result = await acquire(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        owner_id="worker-2",
-    )
-
-    assert result.acquired is False
-    assert result.status == "executing"
-
-
-@pytest.mark.asyncio
-async def test_start_execution(
-    clean_database,
-    async_connection,
-    ledger,
-):
-    acquired = await acquire(
-        async_connection,
-        ledger["key"],
-        target="hello",
-    )
-
-    result = await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
-    )
-
-    assert result.success is True
-    assert result.status == "executing"
-
-
-@pytest.mark.asyncio
-async def test_start_execution_rejects_stale_token(
-    clean_database,
-    async_connection,
-    ledger,
-):
-    acquired = await acquire(
-        async_connection,
-        ledger["key"],
-        target="hello",
-    )
-
-    result = await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token + 999,
-    )
-
-    assert result.success is False
-
-
-@pytest.mark.asyncio
-async def test_start_execution_is_atomic(
-    clean_database,
-    async_connection,
-    ledger,
-):
-    acquired = await acquire(
-        async_connection,
-        ledger["key"],
-        target="hello",
-    )
-
-    result = await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token + 999,
-    )
-
-    assert result.success is False
-
-    async with async_connection.cursor() as cur:
-        await cur.execute("""
-            SELECT status
-            FROM odyssey_ledger
-            WHERE key = %s
-              AND target = %s;
-        """, (
-            ledger["key"],
-            "hello",
-        ))
-
-        ledger_status = await cur.fetchone()
-
-        await cur.execute("""
-            SELECT status
-            FROM odyssey_journeys
-            WHERE key = %s
-              AND target = %s;
-        """, (
-            ledger["key"],
-            "hello",
-        ))
-
-        journey_status = await cur.fetchone()
-
-    assert ledger_status[0] == "claimed"
-    assert journey_status[0] == "claimed"
-
-
 @pytest.mark.asyncio
 async def test_complete(
     clean_database,
@@ -242,13 +102,6 @@ async def test_complete(
         async_connection,
         ledger["key"],
         target="hello",
-    )
-
-    await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
     )
 
     result = await complete(
@@ -276,13 +129,6 @@ async def test_complete_rejects_stale_token(
         target="hello",
     )
 
-    await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
-    )
-
     result = await complete(
         async_connection,
         ledger["key"],
@@ -306,13 +152,6 @@ async def test_complete_is_atomic(
         async_connection,
         ledger["key"],
         target="hello",
-    )
-
-    await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
     )
 
     result = await complete(
@@ -366,13 +205,6 @@ async def test_abandon(
         async_connection,
         ledger["key"],
         target="hello",
-    )
-
-    await start_execution(
-        async_connection,
-        ledger["key"],
-        target="hello",
-        fencing_token=acquired.fencing_token,
     )
 
     result = await abandon(

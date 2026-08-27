@@ -1,6 +1,6 @@
 # Response structure of acquire
 class AcquireResult:
-    def __init__(self, acquired, target, owner_id=None, expires_at=None, fencing_token=None, status=None, journey_alive=None):
+    def __init__(self, acquired, target, owner_id=None, expires_at=None, fencing_token=None, status=None, journey_alive=None, input = None):
         self.acquired = acquired
         self.owner_id = owner_id
         self.target = target
@@ -8,6 +8,7 @@ class AcquireResult:
         self.fencing_token = fencing_token
         self.status = status
         self.journey_alive = journey_alive
+        self.input = input
 
 class OperationResult:
     def __init__(self, success: bool, status=None):

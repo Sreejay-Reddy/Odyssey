@@ -1,13 +1,11 @@
 from .core import (
     acquire, 
-    start_execution, 
     abandon, 
     complete
 )
 
 from .helper import(
-    fetch_cached_response,
-    fetch_input
+    fetch_cached_response
 )
 
 import inspect
@@ -65,30 +63,10 @@ class Execute:
                     success=False,
                     status=acquired.status,
                 )
-
-            # Enter execution boundary
-            started = await start_execution(
-                conn,
-                self.key,
-                target=self.target,
-                fencing_token=acquired.fencing_token
-            )
-
-            if not started.success:
-                return ExecuteResult(
-                    success=False,
-                    status=started.status
-                )
-
+            
             try:
 
-                kwargs = await fetch_input(
-                    conn,
-                    self.key,
-                    target=self.target
-                )
-
-                kwargs = kwargs or {}
+                kwargs = acquired.input or {}
 
                 if inspect.iscoroutinefunction(self.fn):
                     response = await self.fn(**kwargs)

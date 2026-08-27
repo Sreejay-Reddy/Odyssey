@@ -18,7 +18,7 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
         WHERE key = %s
             AND target = %s
             AND status = 'claimed'
-        RETURNING TRUE;
+        RETURNING input;
         """, (key, target))
 
         ledger_result = await cur.fetchone()
@@ -73,7 +73,8 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
             expires_at=row["expires_at"],
             journey_alive=row["journey_alive"],
             fencing_token=row["fencing_token"],
-            status=row["status"]
+            status=row["status"],
+            input=ledger_result[0] 
         )
     
     async with conn.cursor() as cur:
@@ -99,47 +100,6 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
             fencing_token=row["fencing_token"],
             status=row["status"])
 
-async def start_execution(conn, key, *, target, fencing_token):
-
-    row = None
-    
-    async with conn.cursor() as cur:
-        await cur.execute("""
-        UPDATE odyssey_ledger
-        SET 
-            status = 'executing'
-        WHERE key = %s
-            AND target = %s
-            AND status = 'claimed'
-        RETURNING TRUE;
-        """, (key, target))
-
-        ledger_result = await cur.fetchone()
-
-        await cur.execute("""
-        UPDATE odyssey_journeys
-        SET status = 'executing',
-            updated_at = NOW()
-        WHERE key = %s
-          AND target = %s
-          AND fencing_token = %s
-          AND status = 'claimed'
-        RETURNING status;
-        """, (key, target, fencing_token))
-
-        journey_result = await cur.fetchone()
-
-        success = journey_result is not None and ledger_result is not None
-        if success:
-            row = row_to_dict(cur, journey_result)
-    
-    if row is None:
-        await conn.rollback()
-        return OperationResult(success)
-
-    await conn.commit()
-    return OperationResult(success, status=row["status"])
-
 async def complete(conn, key, *, target, fencing_token, execution_result=None):
 
     serialized_result = (
@@ -157,7 +117,7 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
             completed_at = NOW()
         WHERE key = %s
             AND target = %s
-            AND status = 'executing'
+            AND status = 'claimed'
         RETURNING TRUE;
         """, (key, target))
 
@@ -172,7 +132,7 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
         WHERE key = %s
           AND target = %s
           AND fencing_token = %s
-          AND status = 'executing'
+          AND status = 'claimed'
         RETURNING TRUE;
         """, (serialized_result, key, target, fencing_token))
 
@@ -194,7 +154,7 @@ async def abandon(conn, key, *, target, fencing_token):
         WHERE key = %s
             AND target = %s
             AND fencing_token = %s
-            AND status = 'executing'
+            AND status = 'claimed'
         RETURNING TRUE;
         """, (key, target, fencing_token))
         success = await cur.fetchone() is not None
