@@ -14,23 +14,24 @@ class BuildLedger:
         delivery_rows = []
 
         try:
-            for step in self.steps:
+            for sequence, step in enumerate(self.steps, start=1):
 
                 if step.delegate:
                     delivery_rows.append((self.key, step.target, step.delegate))
-                    ledger_rows.append((self.key, step.target, "delegated", Jsonb(step.kwargs)))
+                    ledger_rows.append((self.key, step.target, sequence, "delegated", Jsonb(step.kwargs)))
                 else:
-                    ledger_rows.append((self.key, step.target, "local", Jsonb(step.kwargs)))
+                    ledger_rows.append((self.key, step.target, sequence, "local", Jsonb(step.kwargs)))
 
             with conn.cursor() as cur:
                 cur.executemany("""
                 INSERT INTO odyssey_ledger(
                 key,
                 target,
+                sequence,
                 mode,
                 input
                 )
-                VALUES(%s,%s,%s,%s)
+                VALUES(%s,%s,%s,%s,%s)
                 """, ledger_rows, )
 
                 cur.executemany("""
