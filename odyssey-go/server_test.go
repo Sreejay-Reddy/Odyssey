@@ -314,12 +314,14 @@ func TestExecuteSuccessfulExecution(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			input
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"order-1",
 		"payment",
+		1,
 		"local",
 		[]byte(`{"amount":250}`),
 	)
