@@ -75,12 +75,14 @@ func insertClaimedLedger(
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			status
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		key,
 		target,
+		1,
 		"local",
 		"claimed",
 	)
@@ -192,17 +194,20 @@ func TestAcquireFailsWhenLedgerAlreadyStarted(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			input
 		)
 		VALUES (
 			$1,
 			$2,
+			$3,
 			'local',
 			NULL
 		)`,
 		key,
 		target,
+		1,
 	)
 
 	if err != nil {

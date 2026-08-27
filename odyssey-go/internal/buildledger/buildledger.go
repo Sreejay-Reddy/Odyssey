@@ -61,8 +61,9 @@ func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key
 	ledgerRows := make([][]any, 0, len(steps))
 	deliveryRows := make([][]any, 0)
 
-	for _, step := range steps {
+	for sequence, step := range steps {
 		var input any
+		sequence++
 
 		if step.Input != nil {
 			inputJSON, err := json.Marshal(step.Input)
@@ -88,6 +89,7 @@ func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key
 		ledgerRows = append(ledgerRows, []any{
 			key,
 			step.Target,
+			sequence,
 			mode,
 			input,
 		})
@@ -99,6 +101,7 @@ func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key
 		[]string{
 			"key",
 			"target",
+			"sequence",
 			"mode",
 			"input",
 		},

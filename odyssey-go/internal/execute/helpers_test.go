@@ -200,12 +200,14 @@ func TestFetchInput(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			input
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"input-key",
 		"payment",
+		1,
 		"local",
 		[]byte(`{"amount":100}`),
 	)
@@ -267,12 +269,14 @@ func TestFetchInputNoInput(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			input
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"no-input-key",
 		"payment",
+		1,
 		"local",
 		nil,
 	)
@@ -342,12 +346,14 @@ func TestFetchResponse(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			status
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"response-key",
 		"payment",
+		1,
 		"local",
 		"completed",
 	)
@@ -458,12 +464,14 @@ func TestFetchResponseIgnoresNonCompletedJourney(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			status
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"executing-key",
 		"payment",
+		1,
 		"local",
 		"executing",
 	)
@@ -549,12 +557,14 @@ func TestFetchInputPreservesJSON(t *testing.T) {
 		`INSERT INTO odyssey_ledger (
 			key,
 			target,
+			sequence,
 			mode,
 			input
 		)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		"json-key",
 		"payment",
+		1,
 		"local",
 		input,
 	)
