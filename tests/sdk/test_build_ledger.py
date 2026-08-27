@@ -156,3 +156,42 @@ def test_build_ledger_assigns_sequence(
         ("hello_2", 2),
         ("hello_3", 3),
     ]
+
+
+@pytest.mark.asyncio
+async def test_acquire_preserves_ledger_sequence(
+    clean_database,
+    async_connection,
+    odyssey,
+    hello,
+    unique_key,
+):
+    odyssey.register(
+        target="hello",
+        fn=hello,
+    )
+
+    odyssey.build_ledger(
+        key=unique_key,
+        steps=[
+            Step(
+                "hello",
+                name="Summer",
+            )
+        ],
+    )
+
+    async with async_connection.cursor() as cur:
+        await cur.execute("""
+            SELECT sequence
+            FROM odyssey_ledger
+            WHERE key = %s
+              AND target = %s;
+        """, (
+            unique_key,
+            "hello",
+        ))
+
+        row = await cur.fetchone()
+
+    assert row[0] == 1
