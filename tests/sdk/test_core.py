@@ -2,7 +2,6 @@ import pytest
 
 from odyssey.core import (
     acquire,
-    start_execution,
     complete,
     abandon,
 )
@@ -191,8 +190,8 @@ async def test_complete_is_atomic(
 
         journey_status = await cur.fetchone()
 
-    assert ledger_status[0] == "executing"
-    assert journey_status[0] == "executing"
+    assert ledger_status[0] == "claimed"
+    assert journey_status[0] == "claimed"
 
 
 @pytest.mark.asyncio

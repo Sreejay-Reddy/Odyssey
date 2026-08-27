@@ -1,6 +1,5 @@
 import pytest
 
-from odyssey import Step
 from odyssey.execute import Execute
 
 
