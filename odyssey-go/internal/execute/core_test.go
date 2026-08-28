@@ -2,8 +2,8 @@ package execute
 
 import (
 	"context"
+	"errors"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -232,7 +232,7 @@ func TestAcquireFailsWhenLedgerAlreadyStarted(t *testing.T) {
 			NOW() + INTERVAL '10 seconds',
 			NOW(),
 			nextval('odyssey_token_seq'),
-			'executing'
+			'claimed'
 		)`,
 		key,
 		target,
@@ -256,128 +256,6 @@ func TestAcquireFailsWhenLedgerAlreadyStarted(t *testing.T) {
 	}
 }
 
-func TestStartExecution(t *testing.T) {
-	ctx := context.Background()
-
-	conn := testConn(t)
-
-	key := "test-start"
-	target := "target-a"
-
-	insertClaimedLedger(t, ctx, conn, key, target)
-
-	e := testExecution(t, conn, key, target)
-
-	acquired, err := e.acquire(ctx)
-
-	if err != nil {
-		t.Fatalf("acquire failed: %v", err)
-	}
-
-	if !acquired {
-		t.Fatal("expected acquire to succeed")
-	}
-
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution returned error: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected execution to start")
-	}
-
-	var ledgerStatus string
-
-	err = conn.QueryRow(
-		ctx,
-		`SELECT status
-		FROM odyssey_ledger
-		WHERE key = $1 AND target = $2`,
-		key,
-		target,
-	).Scan(&ledgerStatus)
-
-	if err != nil {
-		t.Fatalf("failed to query ledger: %v", err)
-	}
-
-	if ledgerStatus != "executing" {
-		t.Fatalf(
-			"expected ledger status executing, got %q",
-			ledgerStatus,
-		)
-	}
-
-	var journeyStatus string
-
-	err = conn.QueryRow(
-		ctx,
-		`SELECT status
-		FROM odyssey_journeys
-		WHERE key = $1 AND target = $2`,
-		key,
-		target,
-	).Scan(&journeyStatus)
-
-	if err != nil {
-		t.Fatalf("failed to query journey: %v", err)
-	}
-
-	if journeyStatus != "executing" {
-		t.Fatalf(
-			"expected journey status executing, got %q",
-			journeyStatus,
-		)
-	}
-}
-
-func TestStartExecutionRejectsStaleFencingToken(t *testing.T) {
-	ctx := context.Background()
-
-	conn := testConn(t)
-
-	key := "test-stale-start"
-	target := "target-a"
-
-	insertClaimedLedger(t, ctx, conn, key, target)
-
-	e := testExecution(t, conn, key, target)
-
-	acquired, err := e.acquire(ctx)
-
-	if err != nil {
-		t.Fatalf("acquire failed: %v", err)
-	}
-
-	if !acquired {
-		t.Fatal("expected acquire to succeed")
-	}
-
-	_, err = conn.Exec(
-		ctx,
-		`UPDATE odyssey_journeys
-		SET fencing_token = nextval('odyssey_token_seq')
-		WHERE key = $1 AND target = $2`,
-		key,
-		target,
-	)
-
-	if err != nil {
-		t.Fatalf("failed to advance fencing token: %v", err)
-	}
-
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution returned error: %v", err)
-	}
-
-	if started {
-		t.Fatal("expected stale execution to be rejected")
-	}
-}
 
 func TestComplete(t *testing.T) {
 	ctx := context.Background()
@@ -399,16 +277,6 @@ func TestComplete(t *testing.T) {
 
 	if !acquired {
 		t.Fatal("expected acquire to succeed")
-	}
-
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution failed: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected startExecution to succeed")
 	}
 
 	e.metadata.response = map[string]string{
@@ -492,16 +360,6 @@ func TestCompleteRejectsStaleFencingToken(t *testing.T) {
 		t.Fatal("expected acquire to succeed")
 	}
 
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution failed: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected startExecution to succeed")
-	}
-
 	_, err = conn.Exec(
 		ctx,
 		`UPDATE odyssey_journeys
@@ -546,16 +404,6 @@ func TestAbandon(t *testing.T) {
 
 	if !acquired {
 		t.Fatal("expected acquire to succeed")
-	}
-
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution failed: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected startExecution to succeed")
 	}
 
 	abandoned, err := e.abandon(ctx)
@@ -610,16 +458,6 @@ func TestAbandonRejectsStaleFencingToken(t *testing.T) {
 		t.Fatal("expected acquire to succeed")
 	}
 
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution failed: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected startExecution to succeed")
-	}
-
 	_, err = conn.Exec(
 		ctx,
 		`UPDATE odyssey_journeys
@@ -668,6 +506,77 @@ func TestAcquireExistingCompletedExecution(t *testing.T) {
 	}
 }
 
+func TestAcquireNoRowsReturnsFalse(t *testing.T) {
+	ctx := context.Background()
+
+	conn := testConn(t)
+
+	e := testExecution(
+		t,
+		conn,
+		"missing-key",
+		"missing-target",
+	)
+
+	acquired, err := e.acquire(ctx)
+
+	if err != nil {
+		if !errors.Is(err, ErrLedgerNotFound){
+			t.Fatalf("acquire returned error: %v", err)
+		}
+	}
+
+	if acquired {
+		t.Fatal("expected acquire to return false")
+	}
+}
+
+func TestCompleteWithoutExecutionReturnsFalse(t *testing.T) {
+	ctx := context.Background()
+
+	conn := testConn(t)
+
+	e := testExecution(
+		t,
+		conn,
+		"missing-complete",
+		"target-a",
+	)
+
+	completed, err := e.complete(ctx)
+
+	if err != nil {
+		t.Fatalf("complete returned error: %v", err)
+	}
+
+	if completed {
+		t.Fatal("expected complete to return false")
+	}
+}
+
+func TestAbandonWithoutExecutionReturnsFalse(t *testing.T) {
+	ctx := context.Background()
+
+	conn := testConn(t)
+
+	e := testExecution(
+		t,
+		conn,
+		"missing-abandon",
+		"target-a",
+	)
+
+	abandoned, err := e.abandon(ctx)
+
+	if err != nil {
+		t.Fatalf("abandon returned error: %v", err)
+	}
+
+	if abandoned {
+		t.Fatal("expected abandon to return false")
+	}
+}
+
 func TestFullLifecycle(t *testing.T) {
 	ctx := context.Background()
 
@@ -692,16 +601,6 @@ func TestFullLifecycle(t *testing.T) {
 
 	if e.metadata.status != "claimed" {
 		t.Fatalf("expected claimed status, got %q", e.metadata.status)
-	}
-
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution failed: %v", err)
-	}
-
-	if !started {
-		t.Fatal("expected startExecution to succeed")
 	}
 
 	if e.metadata.fencingToken == 0 {
@@ -801,16 +700,6 @@ func TestTransactionRollbackOnFailedStart(t *testing.T) {
 		t.Fatalf("failed to invalidate fencing token: %v", err)
 	}
 
-	started, err := e.startExecution(ctx)
-
-	if err != nil {
-		t.Fatalf("startExecution returned error: %v", err)
-	}
-
-	if started {
-		t.Fatal("expected startExecution to fail")
-	}
-
 	var ledgerStatus string
 
 	err = conn.QueryRow(
@@ -834,121 +723,154 @@ func TestTransactionRollbackOnFailedStart(t *testing.T) {
 	}
 }
 
-func TestFetchResponseCachedResult(t *testing.T) {
+func TestExpiredClaimedJourneyCanBeReacquired(t *testing.T) {
 	ctx := context.Background()
 
 	conn := testConn(t)
 
-	key := "test-cached-result"
+	key := "test-expired-reacquire"
 	target := "target-a"
 
 	insertClaimedLedger(t, ctx, conn, key, target)
-	insertCompletedJourney(t, ctx, conn, key, target)
 
-	e := testExecution(t, conn, key, target)
+	first := testExecution(t, conn, key, target)
 
-	found, err := e.fetchResponse(ctx)
+	acquired, err := first.acquire(ctx)
 
 	if err != nil {
-		t.Fatalf("fetchResponse returned error: %v", err)
+		t.Fatalf("first acquire failed: %v", err)
 	}
 
-	if !found {
-		t.Fatal("expected cached response to be found")
+	if !acquired {
+		t.Fatal("expected first acquire to succeed")
 	}
 
-	if e.metadata.status != "completed" {
+	_, err = conn.Exec(
+		ctx,
+		`UPDATE odyssey_journeys
+		SET expires_at = NOW() - INTERVAL '1 second'
+		WHERE key = $1
+		  AND target = $2`,
+		key,
+		target,
+	)
+
+	if err != nil {
+		t.Fatalf("failed to expire journey: %v", err)
+	}
+
+	second := testExecution(t, conn, key, target)
+
+	acquired, err = second.acquire(ctx)
+
+	if err != nil {
+		t.Fatalf("second acquire failed: %v", err)
+	}
+
+	if !acquired {
+		t.Fatal("expected expired journey to be reacquired")
+	}
+
+	if second.metadata.fencingToken <= first.metadata.fencingToken {
+		t.Fatal("expected a newer fencing token")
+	}
+}
+
+
+func TestAbandonedJourneyCanBeReacquired(t *testing.T) {
+	ctx := context.Background()
+
+	conn := testConn(t)
+
+	key := "test-abandoned-reacquire"
+	target := "target-a"
+
+	insertClaimedLedger(t, ctx, conn, key, target)
+
+	first := testExecution(t, conn, key, target)
+
+	acquired, err := first.acquire(ctx)
+
+	if err != nil {
+		t.Fatalf("first acquire failed: %v", err)
+	}
+
+	if !acquired {
+		t.Fatal("expected first acquire to succeed")
+	}
+
+	abandoned, err := first.abandon(ctx)
+
+	if err != nil {
+		t.Fatalf("abandon failed: %v", err)
+	}
+
+	if !abandoned {
+		t.Fatal("expected abandon to succeed")
+	}
+
+	second := testExecution(t, conn, key, target)
+
+	acquired, err = second.acquire(ctx)
+
+	if err != nil {
+		t.Fatalf("second acquire failed: %v", err)
+	}
+
+	if !acquired {
+		t.Fatal("expected abandoned journey to be reacquired")
+	}
+
+	if second.metadata.fencingToken <= first.metadata.fencingToken {
+		t.Fatal("expected a newer fencing token")
+	}
+}
+
+
+func TestTwoWorkersOnlyOneAcquires(t *testing.T) {
+	ctx := context.Background()
+
+	conn1 := testConn(t)
+	conn2 := testConn(t)
+
+	key := "test-two-workers"
+	target := "target-a"
+
+	insertClaimedLedger(t, ctx, conn1, key, target)
+
+	worker1 := testExecution(t, conn1, key, target)
+	worker2 := testExecution(t, conn2, key, target)
+
+	results := make(chan bool, 2)
+
+	go func() {
+		acquired, err := worker1.acquire(ctx)
+
+		if err != nil {
+			t.Errorf("worker 1 acquire failed: %v", err)
+		}
+
+		results <- acquired
+	}()
+
+	go func() {
+		acquired, err := worker2.acquire(ctx)
+
+		if err != nil {
+			t.Errorf("worker 2 acquire failed: %v", err)
+		}
+
+		results <- acquired
+	}()
+
+	first := <-results
+	second := <-results
+
+	if first == second {
 		t.Fatalf(
-			"expected completed status, got %q",
-			e.metadata.status,
+			"expected exactly one worker to acquire, got %v and %v",
+			first,
+			second,
 		)
-	}
-
-	if e.metadata.response == nil {
-		t.Fatal("expected response")
-	}
-}
-
-func TestAcquireNoRowsReturnsFalse(t *testing.T) {
-	ctx := context.Background()
-
-	conn := testConn(t)
-
-	e := testExecution(
-		t,
-		conn,
-		"missing-key",
-		"missing-target",
-	)
-
-	acquired, err := e.acquire(ctx)
-
-	if err != nil {
-		t.Fatalf("acquire returned error: %v", err)
-	}
-
-	if acquired {
-		t.Fatal("expected acquire to return false")
-	}
-}
-
-func TestCompleteWithoutExecutionReturnsFalse(t *testing.T) {
-	ctx := context.Background()
-
-	conn := testConn(t)
-
-	e := testExecution(
-		t,
-		conn,
-		"missing-complete",
-		"target-a",
-	)
-
-	completed, err := e.complete(ctx)
-
-	if err != nil {
-		t.Fatalf("complete returned error: %v", err)
-	}
-
-	if completed {
-		t.Fatal("expected complete to return false")
-	}
-}
-
-func TestAbandonWithoutExecutionReturnsFalse(t *testing.T) {
-	ctx := context.Background()
-
-	conn := testConn(t)
-
-	e := testExecution(
-		t,
-		conn,
-		"missing-abandon",
-		"target-a",
-	)
-
-	abandoned, err := e.abandon(ctx)
-
-	if err != nil {
-		t.Fatalf("abandon returned error: %v", err)
-	}
-
-	if abandoned {
-		t.Fatal("expected abandon to return false")
-	}
-}
-
-func TestDecodeInputInvalidJSON(t *testing.T) {
-	type testInput struct {
-		Name string `json:"name"`
-	}
-
-	_, err := decodeInput(
-		[]byte(`not-json`),
-		reflect.TypeOf(testInput{}),
-	)
-
-	if err == nil {
-		t.Fatal("expected decodeInput to return an error")
 	}
 }

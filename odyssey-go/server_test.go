@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -418,8 +419,66 @@ func TestExecuteIncompleteReturnsConflict(t *testing.T) {
 	conn := testServerConn(t)
 	cleanServerDatabase(t, conn)
 
+	ctx := context.Background()
+
+	_, err := conn.Exec(
+		ctx,
+		`INSERT INTO odyssey_ledger (
+			key,
+			target,
+			sequence,
+			mode,
+			status
+		)
+		VALUES ($1, $2, $3, $4, $5)`,
+		"order-1",
+		"payment",
+		1,
+		"local",
+		"claimed",
+	)
+
+	if err != nil {
+		t.Fatalf(
+			"failed to create ledger row: %v",
+			err,
+		)
+	}
+
+	_, err = conn.Exec(
+		ctx,
+		`INSERT INTO odyssey_journeys (
+			key,
+			target,
+			owner_id,
+			expires_at,
+			updated_at,
+			fencing_token,
+			status
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			NOW() + INTERVAL '10 seconds',
+			NOW(),
+			nextval('odyssey_token_seq'),
+			'claimed'
+		)`,
+		"order-1",
+		"payment",
+		"worker-1",
+	)
+
+	if err != nil {
+		t.Fatalf(
+			"failed to create active journey: %v",
+			err,
+		)
+	}
+
 	body := map[string]string{
-		"key":    "missing-ledger",
+		"key":    "order-1",
 		"target": "payment",
 	}
 
@@ -427,9 +486,138 @@ func TestExecuteIncompleteReturnsConflict(t *testing.T) {
 
 	if rec.Code != http.StatusConflict {
 		t.Fatalf(
-			"expected status %d, got %d",
+			"expected status %d, got %d: %s",
 			http.StatusConflict,
 			rec.Code,
+			rec.Body.String(),
 		)
 	}
 }
+
+func TestExecuteFunctionFailure(t *testing.T) {
+	registry.Reset()
+
+	client := testClient(t)
+
+	err := client.Register(
+		"payment",
+		func(ctx context.Context) (map[string]any, error) {
+			return nil, errors.New("payment failed")
+		},
+		10000,
+	)
+
+	if err != nil {
+		t.Fatalf("failed to register payment: %v", err)
+	}
+
+	server := New(client)
+
+	conn := testServerConn(t)
+	cleanServerDatabase(t, conn)
+
+	_, err = conn.Exec(
+		context.Background(),
+		`INSERT INTO odyssey_ledger (
+			key,
+			target,
+			sequence,
+			mode
+		)
+		VALUES ($1, $2, $3, $4)`,
+		"order-1",
+		"payment",
+		1,
+		"local",
+	)
+
+	if err != nil {
+		t.Fatalf("failed to create ledger row: %v", err)
+	}
+
+	body := map[string]string{
+		"key":    "order-1",
+		"target": "payment",
+	}
+
+	rec := executeRequest(t, server, body)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf(
+			"expected status %d, got %d: %s",
+			http.StatusInternalServerError,
+			rec.Code,
+			rec.Body.String(),
+		)
+	}
+}
+
+func TestExecuteFailureDoesNotCompleteLedger(t *testing.T) {
+	registry.Reset()
+
+	client := testClient(t)
+
+	err := client.Register(
+		"payment",
+		func(ctx context.Context) (map[string]any, error) {
+			return nil, errors.New("payment failed")
+		},
+		10000,
+	)
+
+	if err != nil {
+		t.Fatalf("failed to register payment: %v", err)
+	}
+
+	server := New(client)
+
+	conn := testServerConn(t)
+	cleanServerDatabase(t, conn)
+
+	_, err = conn.Exec(
+		context.Background(),
+		`INSERT INTO odyssey_ledger (
+			key,
+			target,
+			sequence,
+			mode
+		)
+		VALUES ($1, $2, $3, $4)`,
+		"order-1",
+		"payment",
+		1,
+		"local",
+	)
+
+	if err != nil {
+		t.Fatalf("failed to create ledger row: %v", err)
+	}
+
+	body := map[string]string{
+		"key":    "order-1",
+		"target": "payment",
+	}
+
+	_ = executeRequest(t, server, body)
+
+	var status string
+
+	err = conn.QueryRow(
+		context.Background(),
+		`SELECT status
+		 FROM odyssey_ledger
+		 WHERE key = $1
+		   AND target = $2`,
+		"order-1",
+		"payment",
+	).Scan(&status)
+
+	if err != nil {
+		t.Fatalf("failed to query ledger: %v", err)
+	}
+
+	if status == "completed" {
+		t.Fatal("failed execution must not complete ledger")
+	}
+}
+

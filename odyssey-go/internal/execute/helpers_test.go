@@ -473,7 +473,7 @@ func TestFetchResponseIgnoresNonCompletedJourney(t *testing.T) {
 		"payment",
 		1,
 		"local",
-		"executing",
+		"claimed",
 	)
 
 	if err != nil {
@@ -502,7 +502,7 @@ func TestFetchResponseIgnoresNonCompletedJourney(t *testing.T) {
 			NOW() + INTERVAL '10 seconds',
 			NOW(),
 			nextval('odyssey_token_seq'),
-			'executing',
+			'claimed',
 			$4
 		)`,
 		"executing-key",
