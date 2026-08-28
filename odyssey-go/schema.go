@@ -7,7 +7,6 @@ DO $$
 BEGIN
     CREATE TYPE odyssey_status AS ENUM (
         'claimed',
-        'executing',
         'completed',
         'reconciling'
     );

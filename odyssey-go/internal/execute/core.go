@@ -25,10 +25,13 @@ type execution struct{
 	ownerID string
 	ttlMS int64
 	input []byte
+	inputFound bool
 
 	conn *pgx.Conn
 	metadata journeyMetadata
 }
+
+var ErrLedgerNotFound = errors.New("ledger row not found or already completed")
 
 func (e *execution) acquire(ctx context.Context) (bool, error) {
 	e.ownerID = getOwnerID()
@@ -48,17 +51,21 @@ func (e *execution) acquire(ctx context.Context) (bool, error) {
         WHERE key = $1
             AND target = $2
             AND status = 'claimed'
-        RETURNING TRUE;`,
+        RETURNING input;`,
 		e.key,
 		e.target,
-	).Scan(new(bool))
+	).Scan(&e.input)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil 
+			return false, ErrLedgerNotFound
 		}
 
 		return false, err
+	}
+
+	if e.input != nil {
+		e.inputFound = true
 	}
 
 	err = tx.QueryRow(
@@ -103,6 +110,26 @@ func (e *execution) acquire(ctx context.Context) (bool, error) {
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			err = tx.QueryRow(
+				ctx,
+				`SELECT owner_id, target, expires_at, fencing_token, status, expires_at > NOW() AS journey_alive
+				FROM odyssey_journeys
+				WHERE key = $1
+				AND target = $2`,
+				e.key,
+				e.target,
+			).Scan(
+			&e.metadata.ownerID,
+			&e.metadata.target,
+			&e.metadata.expiresAt,
+			&e.metadata.fencingToken,
+			&e.metadata.status,
+			&e.metadata.journeyAlive)
+
+			if err != nil{
+				return false, err
+			}
+
 			return false, nil
 		}
 
@@ -116,65 +143,6 @@ func (e *execution) acquire(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (e *execution) startExecution(ctx context.Context) (bool, error){
-	tx, err := e.conn.Begin(ctx)
-
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback(ctx)
-
-	err = tx.QueryRow(
-		ctx,
-		`UPDATE odyssey_ledger
-        SET 
-            status = 'executing'
-        WHERE key = $1
-            AND target = $2
-            AND status = 'claimed'
-        RETURNING TRUE`,
-		e.key,
-		e.target,
-	).Scan(new(bool))
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil 
-		}
-
-		return false, err
-	}
-
-	err = tx.QueryRow(
-		ctx,
-		`UPDATE odyssey_journeys
-        SET status = 'executing',
-            updated_at = NOW()
-        WHERE key = $1
-          AND target = $2
-          AND fencing_token = $3
-          AND status = 'claimed'
-        RETURNING status;`,
-		e.key,
-		e.target,
-		e.metadata.fencingToken,
-	).Scan(new(string))
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil 
-		}
-
-		return false, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
 
 func (e *execution) complete(ctx context.Context) (bool, error){
 	responseJSON, err := json.Marshal(e.metadata.response)
@@ -196,7 +164,7 @@ func (e *execution) complete(ctx context.Context) (bool, error){
             completed_at = NOW()
         WHERE key = $1
             AND target = $2
-            AND status = 'executing'
+            AND status = 'claimed'
         RETURNING TRUE;`,
 		e.key,
 		e.target,
@@ -220,7 +188,7 @@ func (e *execution) complete(ctx context.Context) (bool, error){
         WHERE key = $2
           AND target = $3
           AND fencing_token = $4
-          AND status = 'executing'
+          AND status = 'claimed'
         RETURNING TRUE;`,
 		responseJSON,
 		e.key,
@@ -259,7 +227,7 @@ func (e *execution) abandon(ctx context.Context) (bool, error){
         WHERE key = $1
             AND target = $2
             AND fencing_token = $3
-            AND status = 'executing'
+            AND status = 'claimed'
         RETURNING TRUE;`,
 		e.key,
 		e.target,

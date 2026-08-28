@@ -771,3 +771,148 @@ func TestBuildLedgerContextCancellation(t *testing.T) {
 		)
 	}
 }
+
+func TestBuildLedgerPersistsSequence(t *testing.T) {
+	conn := testConn(t)
+	cfg := testConfig()
+
+	cleanDatabase(t, conn)
+
+	testRegisterTarget(t, cfg, "payment")
+	testRegisterTarget(t, cfg, "email")
+
+	ok, err := BuildLedger(
+		context.Background(),
+		conn,
+		cfg,
+		"order-sequence",
+		[]types.Step{
+			{Target: "payment"},
+			{Target: "email"},
+		},
+	)
+
+	if err != nil {
+		t.Fatalf("BuildLedger returned error: %v", err)
+	}
+
+	if !ok {
+		t.Fatal("expected success to be true")
+	}
+
+	var (
+		paymentSequence int64
+		emailSequence   int64
+	)
+
+	err = conn.QueryRow(
+		context.Background(),
+		`SELECT sequence
+		 FROM odyssey_ledger
+		 WHERE key = $1
+		   AND target = $2`,
+		"order-sequence",
+		"payment",
+	).Scan(&paymentSequence)
+
+	if err != nil {
+		t.Fatalf("failed to query payment sequence: %v", err)
+	}
+
+	err = conn.QueryRow(
+		context.Background(),
+		`SELECT sequence
+		 FROM odyssey_ledger
+		 WHERE key = $1
+		   AND target = $2`,
+		"order-sequence",
+		"email",
+	).Scan(&emailSequence)
+
+	if err != nil {
+		t.Fatalf("failed to query email sequence: %v", err)
+	}
+
+	if paymentSequence != 1 {
+		t.Fatalf(
+			"expected payment sequence 1, got %d",
+			paymentSequence,
+		)
+	}
+
+	if emailSequence != 2 {
+		t.Fatalf(
+			"expected email sequence 2, got %d",
+			emailSequence,
+		)
+	}
+}
+
+func TestBuildLedgerPersistsInput(t *testing.T) {
+	conn := testConn(t)
+	cfg := testConfig()
+
+	cleanDatabase(t, conn)
+
+	testRegisterTarget(t, cfg, "payment")
+
+	ok, err := BuildLedger(
+		context.Background(),
+		conn,
+		cfg,
+		"order-input",
+		[]types.Step{
+			{
+				Target: "payment",
+				Input: map[string]any{
+					"amount":   250,
+					"currency": "USD",
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		t.Fatalf("BuildLedger returned error: %v", err)
+	}
+
+	if !ok {
+		t.Fatal("expected success to be true")
+	}
+
+	var input []byte
+
+	err = conn.QueryRow(
+		context.Background(),
+		`SELECT input
+		 FROM odyssey_ledger
+		 WHERE key = $1
+		   AND target = $2`,
+		"order-input",
+		"payment",
+	).Scan(&input)
+
+	if err != nil {
+		t.Fatalf("failed to query ledger input: %v", err)
+	}
+
+	var decoded map[string]any
+
+	if err := json.Unmarshal(input, &decoded); err != nil {
+		t.Fatalf("failed to decode input: %v", err)
+	}
+
+	if decoded["amount"] != float64(250) {
+		t.Fatalf(
+			"expected amount 250, got %v",
+			decoded["amount"],
+		)
+	}
+
+	if decoded["currency"] != "USD" {
+		t.Fatalf(
+			"expected currency USD, got %v",
+			decoded["currency"],
+		)
+	}
+}

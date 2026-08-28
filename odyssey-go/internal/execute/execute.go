@@ -44,19 +44,7 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 		return nil, false, nil
 	}
 
-	success, err := e.startExecution(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !success {
-		return  nil, false, nil
-	}
-
-	found, err :=  e.fetchInput(ctx)
-	if err != nil {
-		return nil, false, err
-	}
+	found := e.inputFound
 
 	fnValue := reflect.ValueOf(registered.Fn)
 	fnType := fnValue.Type()
