@@ -64,19 +64,20 @@ class Execute:
                     status=acquired.status,
                 )
                 
-            try:
+        try:
 
-                kwargs = acquired.input or {}
+            kwargs = acquired.input or {}
 
-                if inspect.iscoroutinefunction(self.fn):
-                    response = await self.fn(**kwargs)
-                else:
-                    response = await run_in_threadpool(
-                        self.fn,
-                        **kwargs
-                    )
+            if inspect.iscoroutinefunction(self.fn):
+                response = await self.fn(**kwargs)
+            else:
+                response = await run_in_threadpool(
+                    self.fn,
+                    **kwargs
+                )
 
-            except Exception as e:
+        except Exception as e:
+            async with self.pool.connection() as conn:
                 try:
                     await abandon(
                         conn,
@@ -84,18 +85,20 @@ class Execute:
                         target=self.target,
                         fencing_token=acquired.fencing_token
                     )
-                        
+                            
                 except Exception as cleanup_error:
                     raise RuntimeError(
                         "Could not expire lease after fn() failure"
                         f"Exception:{cleanup_error}"
                     )
 
-                raise RuntimeError(
-                    "Execution terminated with an exception after execution started. "
-                    "Side effects may have partially completed. "
-                    f"exception: {e}"
-                )
+            raise RuntimeError(
+                "Execution terminated with an exception after execution started. "
+                "Side effects may have partially completed. "
+                f"exception: {e}"
+            )
+
+        async with self.pool.connection() as conn:
 
             completed = await complete(
                 conn,

@@ -181,6 +181,17 @@ class Odyssey:
             server.app,
             host=host,
             port=port,
+
+            loop="auto",
+            http="httptools",
+
+            access_log=False,
+
+            backlog=2048,
+            timeout_keep_alive=30,
+
+            limit_concurrency=None,
+            limit_max_requests=None,
         )
 
         uvicorn_server = uvicorn.Server(config)
