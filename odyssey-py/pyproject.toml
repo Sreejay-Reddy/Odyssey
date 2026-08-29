@@ -15,11 +15,13 @@ authors = [
 ]
 
 dependencies = [
-    "psycopg[binary,pool]>=3.2",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
     "PyYAML>=6.0",
     "python-dotenv>=1.0",
     "starlette>=0.40",
     "uvicorn>=0.30",
+    "httptools>=0.6",
 ]
 
 [project.scripts]
