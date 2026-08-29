@@ -1,5 +1,5 @@
 import psycopg
-from psycopg import AsyncConnection
+from psycopg_pool import AsyncConnectionPool
 import asyncio
 import selectors
 import sys
@@ -51,11 +51,18 @@ class Odyssey:
 
         self.db_url = db_url
 
+        self.pool = AsyncConnectionPool(
+            conninfo=self.db_url,
+            min_size=20,
+            max_size=20,
+            open=False,
+        )
+
     def _sync_conn(self):
         return psycopg.connect(self.db_url)
 
     async def _async_conn(self):
-        return await AsyncConnection.connect(self.db_url)
+        return await self.pool.connection()
 
     def _ttl(self, ttl_ms):
         return ttl_ms if ttl_ms is not None else self.default_ttl_ms
@@ -167,7 +174,7 @@ class Odyssey:
 
         server = OdysseyServer(
             registry=self._register,
-            get_conn=self._async_conn,
+            pool=self.pool,
         )
 
         config = uvicorn.Config(
@@ -190,10 +197,24 @@ class Odyssey:
 
         try:
             loop.run_until_complete(
+                self.pool.open()
+            )
+
+            loop.run_until_complete(
+                self.pool.wait()
+            )
+
+            loop.run_until_complete(
                 uvicorn_server.serve()
             )
+
         finally:
+            loop.run_until_complete(
+                self.pool.close()
+            )
+
             loop.run_until_complete(
                 loop.shutdown_asyncgens()
             )
+
             loop.close()

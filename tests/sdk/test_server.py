@@ -7,11 +7,11 @@ def test_execute_endpoint_uses_ledger_input(
     clean_database,
     odyssey,
     ledger,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -38,11 +38,11 @@ def test_execute_does_not_accept_agent_input_as_source_of_truth(
     clean_database,
     odyssey,
     ledger,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -69,11 +69,11 @@ def test_execute_does_not_accept_agent_input_as_source_of_truth(
 
 def test_invalid_json(
     odyssey,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -92,11 +92,11 @@ def test_invalid_json(
 
 def test_missing_key(
     odyssey,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -114,11 +114,11 @@ def test_missing_key(
 
 def test_missing_target(
     odyssey,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -136,11 +136,11 @@ def test_missing_target(
 
 def test_unknown_target(
     odyssey,
-    async_connection_factory,
+    pool,
 ):
     server = OdysseyServer(
         registry=odyssey._register,
-        get_conn=async_connection_factory,
+        pool=pool,
     )
 
     client = TestClient(server.app)
@@ -155,3 +155,4 @@ def test_unknown_target(
 
     assert response.status_code == 404
     assert "not registered" in response.json()["error"]
+

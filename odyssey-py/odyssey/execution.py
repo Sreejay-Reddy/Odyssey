@@ -5,9 +5,9 @@ from .execute import Execute
 
 
 class Execution:
-    def __init__(self, registry, get_conn):
+    def __init__(self, registry, pool):
         self.registry = registry
-        self.get_conn = get_conn
+        self.pool = pool
 
     async def execute(self, request: Request):
         try:
@@ -43,7 +43,7 @@ class Execution:
 
         try:
             execution = Execute(
-                get_conn=self.get_conn,
+                pool=self.pool,
                 key=key,
                 target=target,
                 ttl_ms=registered.ttl_ms,

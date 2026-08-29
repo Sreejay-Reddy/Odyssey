@@ -7,10 +7,10 @@ from .execution import Execution
 
 
 class OdysseyServer:
-    def __init__(self, registry, get_conn):
+    def __init__(self, registry, pool):
         self.execution = Execution(
             registry=registry,
-            get_conn=get_conn
+            pool=pool
         )
 
         self.app = Starlette(

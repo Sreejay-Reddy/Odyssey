@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "odysseys-py"
-version = "0.0.2"
+version = "0.0.3"
 description = "A lightweight durable execution and orchestration runtime for distributed services."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,7 @@ authors = [
 ]
 
 dependencies = [
-    "psycopg[binary]>=3.2",
+    "psycopg[binary,pool]>=3.2",
     "PyYAML>=6.0",
     "python-dotenv>=1.0",
     "starlette>=0.40",
