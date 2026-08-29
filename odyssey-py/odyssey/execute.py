@@ -16,23 +16,23 @@ from .results import ExecuteResult
 class Execute:
     def __init__(
         self,
-        get_conn,
+        pool,
         key,
         target,
         fn,
         ttl_ms
     ):
 
-        self.get_conn = get_conn
+        self.pool = pool
         self.key = key
         self.target = target
         self.fn = fn
         self.ttl_ms = ttl_ms
 
     async def run(self):
-        conn = await self.get_conn()
 
-        try:
+        async with self.pool.connection() as conn:
+
             acquired = await acquire(
                 conn=conn,
                 key=self.key,
@@ -63,7 +63,7 @@ class Execute:
                     success=False,
                     status=acquired.status,
                 )
-            
+                
             try:
 
                 kwargs = acquired.input or {}
@@ -84,7 +84,7 @@ class Execute:
                         target=self.target,
                         fencing_token=acquired.fencing_token
                     )
-                    
+                        
                 except Exception as cleanup_error:
                     raise RuntimeError(
                         "Could not expire lease after fn() failure"
@@ -117,10 +117,6 @@ class Execute:
                 status="completed",
                 response=response
             )
-        
-        finally:
-            await conn.close()
-
 
         
 

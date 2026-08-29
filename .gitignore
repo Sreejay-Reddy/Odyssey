@@ -31,6 +31,7 @@ odyssey-py/**/*.pyc
 odyssey-py/*.egg-info/
 odyssey-py/build/
 odyssey-py/dist/
+odyssey-py/README.MD
 odyssey-py/LICENSE
 
 # Ignore env and tests
