@@ -6,7 +6,6 @@ import asyncio
 import psycopg
 import pytest
 import pytest_asyncio
-from psycopg import AsyncConnection
 
 from odyssey import Odyssey, Step
 
@@ -26,12 +25,14 @@ def db_url():
 def unique_key():
     return f"test-{uuid.uuid4().hex}"
 
+
 @pytest.fixture(scope="session")
 def event_loop_policy():
     if sys.platform == "win32":
         return asyncio.WindowsSelectorEventLoopPolicy()
 
     return asyncio.DefaultEventLoopPolicy()
+
 
 @pytest.fixture
 def registry_config():
@@ -46,9 +47,10 @@ def registry_config():
         }
     }
 
-@pytest.fixture
-def odyssey(db_url):
-    return Odyssey(
+
+@pytest_asyncio.fixture
+async def odyssey(db_url):
+    client = Odyssey(
         db_url=db_url,
         config={
             "services": {},
@@ -62,6 +64,26 @@ def odyssey(db_url):
             },
         },
     )
+
+    await client.pool.open()
+    await client.pool.wait()
+
+    try:
+        yield client
+    finally:
+        await client.pool.close()
+
+
+@pytest_asyncio.fixture
+async def pool(odyssey):
+    return odyssey.pool
+
+
+@pytest_asyncio.fixture
+async def async_connection(pool):
+    async with pool.connection() as conn:
+        yield conn
+
 
 @pytest.fixture
 def odyssey_without_default(db_url):
@@ -105,16 +127,6 @@ def async_hello():
     return async_hello
 
 
-@pytest_asyncio.fixture
-async def async_connection(db_url):
-    conn = await AsyncConnection.connect(db_url)
-
-    try:
-        yield conn
-    finally:
-        await conn.close()
-
-
 @pytest.fixture
 def sync_connection(db_url):
     conn = psycopg.connect(db_url)
@@ -123,24 +135,6 @@ def sync_connection(db_url):
         yield conn
     finally:
         conn.close()
-
-
-@pytest.fixture
-def async_connection_factory(db_url):
-    connections = []
-
-    async def get_conn():
-        conn = await AsyncConnection.connect(db_url)
-        connections.append(conn)
-        return conn
-
-    yield get_conn
-
-    # Execute closes its own connection.
-    # This list is only useful for connections created outside Execute.
-    for conn in connections:
-        if not conn.closed:
-            conn.close()
 
 
 @pytest.fixture
@@ -214,10 +208,8 @@ def async_ledger(odyssey, async_hello, unique_key):
 
 
 @pytest_asyncio.fixture
-async def clean_database(db_url):
-    conn = await AsyncConnection.connect(db_url)
-
-    try:
+async def clean_database(pool):
+    async with pool.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
                 TRUNCATE
@@ -229,8 +221,9 @@ async def clean_database(db_url):
 
         await conn.commit()
 
-        yield
+    yield
 
+    async with pool.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
                 TRUNCATE
@@ -241,6 +234,3 @@ async def clean_database(db_url):
             """)
 
         await conn.commit()
-
-    finally:
-        await conn.close()

@@ -7,11 +7,11 @@ from odyssey.core import acquire
 @pytest.mark.asyncio
 async def test_execute_queries_input_from_ledger(
     clean_database,
-    async_connection_factory,
+    pool,
     ledger,
 ):
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=ledger["key"],
         target=ledger["target"],
         fn=ledger["odyssey"]._register.get("hello").fn,
@@ -28,18 +28,17 @@ async def test_execute_queries_input_from_ledger(
 @pytest.mark.asyncio
 async def test_execute_does_not_require_input_from_agent(
     clean_database,
-    async_connection_factory,
+    pool,
     ledger,
 ):
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=ledger["key"],
         target=ledger["target"],
         fn=ledger["odyssey"]._register.get("hello").fn,
         ttl_ms=10000,
     )
 
-    # There is deliberately no kwargs/input argument here.
     result = await execution.run()
 
     assert result.success is True
@@ -49,13 +48,13 @@ async def test_execute_does_not_require_input_from_agent(
 @pytest.mark.asyncio
 async def test_execute_async_function(
     clean_database,
-    async_connection_factory,
+    pool,
     async_ledger,
 ):
     fn = async_ledger["odyssey"]._register.get("async_hello").fn
 
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=async_ledger["key"],
         target=async_ledger["target"],
         fn=fn,
@@ -72,13 +71,13 @@ async def test_execute_async_function(
 @pytest.mark.asyncio
 async def test_execute_failure_abandons(
     clean_database,
-    async_connection_factory,
+    pool,
     failing_ledger,
 ):
     fn = failing_ledger["odyssey"]._register.get("failing").fn
 
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=failing_ledger["key"],
         target=failing_ledger["target"],
         fn=fn,
@@ -91,38 +90,36 @@ async def test_execute_failure_abandons(
     ):
         await execution.run()
 
-    conn = await async_connection_factory()
-
-    try:
+    async with pool.connection() as conn:
         async with conn.cursor() as cur:
-            await cur.execute("""
+            await cur.execute(
+                """
                 SELECT expires_at <= NOW()
                 FROM odyssey_journeys
                 WHERE key = %s
                   AND target = %s;
-            """, (
-                failing_ledger["key"],
-                failing_ledger["target"],
-            ))
+                """,
+                (
+                    failing_ledger["key"],
+                    failing_ledger["target"],
+                ),
+            )
 
             row = await cur.fetchone()
 
-        assert row[0] is True
-
-    finally:
-        await conn.close()
+    assert row[0] is True
 
 
 @pytest.mark.asyncio
 async def test_execute_returns_cached_response_for_completed_journey(
     clean_database,
-    async_connection_factory,
+    pool,
     ledger,
 ):
     fn = ledger["odyssey"]._register.get("hello").fn
 
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=ledger["key"],
         target=ledger["target"],
         fn=fn,
@@ -145,25 +142,24 @@ async def test_execute_returns_cached_response_for_completed_journey(
 @pytest.mark.asyncio
 async def test_execute_does_not_run_when_journey_is_active(
     clean_database,
-    async_connection_factory,
+    pool,
     ledger,
 ):
     fn = ledger["odyssey"]._register.get("hello").fn
 
-    conn = await async_connection_factory()
-
-    acquired = await acquire(
-        conn,
-        ledger["key"],
-        target=ledger["target"],
-        owner_id="worker-1",
-        ttl_ms=10000,
-    )
+    async with pool.connection() as conn:
+        acquired = await acquire(
+            conn,
+            ledger["key"],
+            target=ledger["target"],
+            owner_id="worker-1",
+            ttl_ms=10000,
+        )
 
     assert acquired.acquired is True
 
     execution = Execute(
-        get_conn=async_connection_factory,
+        pool=pool,
         key=ledger["key"],
         target=ledger["target"],
         fn=fn,
@@ -175,4 +171,3 @@ async def test_execute_does_not_run_when_journey_is_active(
     assert result.success is False
     assert result.status == "claimed"
 
-    await conn.close()
