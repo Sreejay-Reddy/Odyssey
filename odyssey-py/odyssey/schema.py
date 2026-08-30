@@ -1,5 +1,4 @@
 SCHEMA_SQL = """
-CREATE SEQUENCE IF NOT EXISTS odyssey_token_seq;
 
 DO $$
 BEGIN
@@ -40,26 +39,13 @@ CREATE TABLE IF NOT EXISTS odyssey_ledger (
     status odyssey_status NOT NULL DEFAULT 'claimed',
     mode odyssey_execution_mode NOT NULL,
     input JSONB,
+    execution_result JSONB DEFAULT NULL,
+    attempts BIGINT NOT NULL DEFAULT 0,
+    expires_at TIMESTAMPTZ,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
 
     PRIMARY KEY (key, target)
-);
-
-CREATE TABLE IF NOT EXISTS odyssey_journeys (
-    key TEXT NOT NULL,
-    target TEXT NOT NULL,
-    owner_id TEXT NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    execution_result JSONB,
-    status odyssey_status NOT NULL DEFAULT 'claimed',
-    attempts INTEGER NOT NULL DEFAULT 1,
-    fencing_token BIGINT NOT NULL DEFAULT 1,
-
-    PRIMARY KEY (key, target),
-    FOREIGN KEY (key, target)
-        REFERENCES odyssey_ledger(key, target)
 );
 
 CREATE TABLE IF NOT EXISTS odyssey_deliveries (

@@ -83,7 +83,7 @@ class Execute:
                         conn,
                         self.key,
                         target=self.target,
-                        fencing_token=acquired.fencing_token
+                        attempt=acquired.attempts
                     )
                             
                 except Exception as cleanup_error:
@@ -104,7 +104,7 @@ class Execute:
                 conn,
                 self.key,
                 target=self.target,
-                fencing_token=acquired.fencing_token,
+                attempt=acquired.attempts,
                 execution_result=response
             )
 

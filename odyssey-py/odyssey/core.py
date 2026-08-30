@@ -1,10 +1,9 @@
-from .utils import get_owner_id, row_to_dict
+from .utils import row_to_dict
 from .results import AcquireResult, OperationResult, InspectResult
 from psycopg.types.json import Jsonb
 
-async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
+async def acquire(conn, key, *, target, ttl_ms=10000):
 
-    owner_id = owner_id or get_owner_id()
     ttl_ms = ttl_ms if ttl_ms and ttl_ms > 0 else 10000
 
     row = None 
@@ -12,68 +11,21 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
     async with conn.cursor() as cur:
         await cur.execute(
             """
-            WITH ledger AS (
-                UPDATE odyssey_ledger
-                SET
-                    started_at = NOW()
-                WHERE key = %s
+            UPDATE odyssey_ledger
+            SET 
+                started_at = NOW(),
+                expires_at = NOW() + (%s * INTERVAL '1 millisecond'),
+                attempts = attempts + 1
+            WHERE key = %s
                 AND target = %s
                 AND status = 'claimed'
-                RETURNING input
-            ),
-            journey AS (
-                INSERT INTO odyssey_journeys (
-                    key,
-                    target,
-                    owner_id,
-                    expires_at,
-                    updated_at,
-                    fencing_token
-                )
-                VALUES (
-                    %s,
-                    %s,
-                    %s,
-                    NOW() + (%s * INTERVAL '1 millisecond'),
-                    NOW(),
-                    nextval('odyssey_token_seq')
-                )
-                ON CONFLICT (key, target)
-                DO UPDATE
-                SET
-                    owner_id = EXCLUDED.owner_id,
-                    expires_at = EXCLUDED.expires_at,
-                    updated_at = NOW(),
-                    attempts = odyssey_journeys.attempts + 1,
-                    fencing_token = nextval('odyssey_token_seq')
-                WHERE odyssey_journeys.expires_at < NOW()
-                AND odyssey_journeys.status = 'claimed'
-                RETURNING
-                    owner_id,
-                    expires_at,
-                    fencing_token,
-                    status,
-                    target,
-                    expires_at > NOW() AS journey_alive
-            )
-            SELECT
-                journey.owner_id,
-                journey.expires_at,
-                journey.fencing_token,
-                journey.status,
-                journey.target,
-                journey.journey_alive,
-                ledger.input
-            FROM ledger
-            CROSS JOIN journey;
+                AND expires_at < NOW()
+            RETURNING input, status, attempts
             """,
             (
-                key,
-                target,
-                key,
-                target,
-                owner_id,
                 ttl_ms,
+                key,
+                target
             ),
         )
 
@@ -83,48 +35,40 @@ async def acquire(conn, key, *, target, owner_id=None, ttl_ms=10000):
 
     if row is None:
         await conn.rollback()
+        async with conn.cursor() as cur:
+            await cur.execute("""
+            SELECT status, attempts
+            FROM odyssey_ledger
+            WHERE key = %s
+            AND target = %s
+            """, (key, target))
 
-    if row is not None and row["fencing_token"] is None:
-        raise Exception("Invariant violation: fencing_token is None")
+            result = await cur.fetchone()
 
-    if row is not None:
-        await conn.commit()
-        return AcquireResult(
-            acquired=True,
-            owner_id=row["owner_id"],
-            target=row["target"],
-            expires_at=row["expires_at"],
-            journey_alive=row["journey_alive"],
-            fencing_token=row["fencing_token"],
-            status=row["status"],
-            input=row["input"] 
-        )
-    
-    async with conn.cursor() as cur:
-        await cur.execute("""
-        SELECT owner_id, target, expires_at, fencing_token, status, expires_at > NOW() AS journey_alive
-        FROM odyssey_journeys
-        WHERE key = %s
-        AND target = %s
-        """, (key, target))
+            if result is None:
+                raise RuntimeError(
+                    f"Durable record missing for key={key!r}, target={target!r}"
+                )
 
-        result = await cur.fetchone()
-
-        if result is not None:
             row = row_to_dict(cur, result)
 
-    if row is not None:
-        return AcquireResult(
-            acquired=False,
-            owner_id=row["owner_id"],
-            target=row["target"],
-            expires_at=row["expires_at"],
-            journey_alive=row["journey_alive"],
-            fencing_token=row["fencing_token"],
-            status=row["status"])
+            return AcquireResult(
+                acquired=False,
+                target=target,
+                status=row["status"],
+                attempts=row["attempts"])
+
+    await conn.commit()
+    return AcquireResult(
+        acquired=True,
+        target=target,
+        status=row["status"],
+        input=row["input"],
+        attempts=row["attempts"]
+    )
 
 
-async def complete(conn, key, *, target, fencing_token, execution_result=None):
+async def complete(conn, key, *, target, attempt, execution_result=None):
     serialized_result = (
         Jsonb(execution_result)
         if execution_result is not None
@@ -134,47 +78,28 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
     async with conn.cursor() as cur:
         await cur.execute(
             """
-            WITH ledger AS (
-                UPDATE odyssey_ledger
-                SET
-                    status = 'completed',
-                    completed_at = NOW()
-                WHERE key = %s
-                  AND target = %s
-                  AND status = 'claimed'
-                RETURNING TRUE
-            ),
-            journey AS (
-                UPDATE odyssey_journeys
-                SET
-                    status = 'completed',
-                    execution_result = %s,
-                    updated_at = NOW()
-                WHERE key = %s
-                  AND target = %s
-                  AND fencing_token = %s
-                  AND status = 'claimed'
-                RETURNING TRUE
-            )
-            SELECT
-                EXISTS (SELECT 1 FROM ledger) AS ledger_success,
-                EXISTS (SELECT 1 FROM journey) AS journey_success;
+            UPDATE odyssey_ledger
+            SET
+                status = 'completed',
+                completed_at = NOW(),
+                execution_result = %s
+            WHERE key = %s
+                AND target = %s
+                AND status = 'claimed'
+                AND attempts = %s
+            RETURNING TRUE
             """,
             (
-                key,
-                target,
                 serialized_result,
                 key,
                 target,
-                fencing_token,
+                attempt,
             ),
         )
 
         result = await cur.fetchone()
 
-    ledger_success, journey_success = result
-
-    if not ledger_success or not journey_success:
+    if not result:
         await conn.rollback()
         return OperationResult(success=False)
 
@@ -182,19 +107,22 @@ async def complete(conn, key, *, target, fencing_token, execution_result=None):
 
     return OperationResult(success=True)
 
-async def abandon(conn, key, *, target, fencing_token):
+async def abandon(conn, key, *, target, attempt):
     async with conn.cursor() as cur:
         await cur.execute("""
-        UPDATE odyssey_journeys
-        SET expires_at = NOW(),
-            updated_at = NOW()
+        UPDATE odyssey_ledger
+        SET expires_at = NOW()
         WHERE key = %s
             AND target = %s
-            AND fencing_token = %s
+            AND attempts = %s
             AND status = 'claimed'
         RETURNING TRUE;
-        """, (key, target, fencing_token))
+        """, (key, target, attempt))
         success = await cur.fetchone() is not None
+
+    if not success:
+        await conn.rollback()
+        return OperationResult(success=False)
 
     await conn.commit()
     return OperationResult(success)
