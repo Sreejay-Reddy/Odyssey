@@ -27,9 +27,10 @@ class Step:
         self.kwargs = dict(kwargs)
 
 class Odyssey:
-    def __init__(self, db_url = None, config = None, default_ttl_ms=10000, namespace=None):
+    def __init__(self, db_url=None, pool_size=20, config=None, default_ttl_ms=10000, namespace=None):
         self.default_ttl_ms = default_ttl_ms
         self.namespace = namespace
+        self.pool_size = pool_size
         
         if config is None:
             self.config, self.config_path = load_config()
@@ -53,8 +54,8 @@ class Odyssey:
 
         self.pool = AsyncConnectionPool(
             conninfo=self.db_url,
-            min_size=20,
-            max_size=20,
+            min_size=self.pool_size,
+            max_size=self.pool_size,
             open=False,
         )
 

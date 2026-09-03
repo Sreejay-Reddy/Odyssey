@@ -29,9 +29,10 @@ class BuildLedger:
                 target,
                 sequence,
                 mode,
-                input
+                input,
+                expires_at
                 )
-                VALUES(%s,%s,%s,%s,%s)
+                VALUES(%s,%s,%s,%s,%s, NOW() - INTERVAL '1 millisecond')
                 """, ledger_rows, )
 
                 cur.executemany("""
