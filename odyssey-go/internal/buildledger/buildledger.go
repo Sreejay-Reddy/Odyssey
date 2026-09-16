@@ -12,7 +12,7 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
-func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key string, steps []types.Step) (bool, error){
+func BuildLedger(ctx context.Context, conn *pgx.Conn, registry *registry.Registry, cfg configutil.Config, key string, steps []types.Step) (bool, error){
 
 	if key == "" {
 		return false, errors.New("key cannot be empty")
@@ -37,7 +37,7 @@ func BuildLedger(ctx context.Context, conn *pgx.Conn, cfg configutil.Config, key
 			return false, errors.New("target cannot be empty")
 		}
 
-		_ , exists := registry.Get(step.Target)
+		_ , exists := registry.GetByName(step.Target)
 
 		if !exists && step.Delegate == "" {
 			return false, errors.New("target doesn't exist in registry and target isn't delegated")

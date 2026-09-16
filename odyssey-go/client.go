@@ -12,14 +12,16 @@ import (
 )
 
 type Client struct{
-	dbURL string
+    dbURL string
     config configutil.Config
+    registry *registry.Registry
 }
 
 func NewClient(dbURL string, cfg configutil.Config) *Client {
     return &Client{
         dbURL: dbURL,
         config: cfg,
+        registry: registry.New(),
     }
 }
 
@@ -49,7 +51,15 @@ func (c *Client) InitDB(ctx context.Context) error {
 }
 
 func (c *Client) Register(target string, fn any, ttlMS int64) error {
-    return registry.Register(c.config, target, fn, ttlMS)
+    return c.registry.Register(c.config, target, fn, ttlMS)
+}
+
+func (c *Client) GetByName(target string) (*registry.Registered, bool) {
+    return c.registry.GetByName(target)
+}
+
+func (c *Client) GetByID(targetID uint32) (*registry.Registered, bool) {
+    return c.registry.GetByID(targetID)
 }
 
 func (c *Client) BuildLedger(
@@ -65,6 +75,7 @@ func (c *Client) BuildLedger(
         _ , err = buildledger.BuildLedger(
             ctx,
             conn,
+            c.registry,
             c.config,
             key, 
             steps,
@@ -74,11 +85,12 @@ func (c *Client) BuildLedger(
 }
 
 func (c *Client) Serve(addr string) error {
-    server := Server{
+    _ = Server{
         client: c,
     }
 
-    return server.Serve(addr)
+    // return server.Serve(addr)
+    return nil
 }
 
 func LoadConfig() (configutil.Config, error) {
