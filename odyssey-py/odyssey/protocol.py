@@ -29,3 +29,19 @@ class Message:
     flags: int
     batch_id: int
     executions: list[Execution]
+
+@dataclass(slots=True)
+class ResultExecution:
+    key: str
+    target_id: int
+    execution_result: bytes
+    status: ExecutionStatus
+
+
+@dataclass(slots=True)
+class Result:
+    version: int
+    sdk_id: bytes
+    session_id: bytes
+    batch_id: int
+    executions: list[ResultExecution]

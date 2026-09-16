@@ -10,41 +10,17 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 )
 
-func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (any, bool, error) {
-	registered, exists := registry.Get(target)
+func Execute(ctx context.Context, conn *pgx.Conn, registry *registry.Registry, key string, target string, input json.RawMessage) (any, bool, error) {
+	registered, exists := registry.GetByName(target)
 
 	if !exists {
 		return nil, false, errors.New("target is not registered")
 	}
 
-	e := execution{
-		key: key,
-		target: target,
-		ttlMS: registered.TTLMS,
-		conn: conn,
+	found := true
+	if len(input) == 0 {
+		found = false
 	}
-
-	acquired, err := e.acquire(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired{
-		if e.metadata.status == "completed"{
-			found, err := e.fetchResponse(ctx)
-			if err != nil {
-				return nil, false, err
-			}
-
-			if found {
-				return e.metadata.response, false, nil
-			}
-		}
-
-		return nil, false, nil
-	}
-
-	found := e.inputFound
 
 	fnValue := reflect.ValueOf(registered.Fn)
 	fnType := fnValue.Type()
@@ -71,8 +47,9 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 		)
 	}
 
+	var response any
 	if found {
-		inputJSON := e.input
+		inputJSON := input
 
 		if fnType.NumIn() != 2 {
 			return nil, false, errors.New(
@@ -102,60 +79,34 @@ func Execute(ctx context.Context, conn *pgx.Conn, key string, target string) (an
 			inputStruct,
 		})
 
-		response := results[0].Interface()
+		response = results[0].Interface()
 		errValue := results[1]
 
 		if !errValue.IsNil() {
 			functionErr := errValue.Interface().(error)
 
-			if _, abandonErr := e.abandon(ctx); abandonErr != nil {
-				return nil, false, abandonErr
-			}
-
 			return nil, false, functionErr
 		}
-
-		e.metadata.response = response
 	}
 
-	if !found {
-		if fnType.NumIn() != 1 {
-        	return nil, false, errors.New(
-            	"no input exists but registered function requires input",
-        	)
-    	}
+	if fnType.NumIn() != 1 {
+        return nil, false, errors.New(
+            "no input exists but registered function requires input",
+        )
+    }
 
-		results := fnValue.Call([]reflect.Value{
-			reflect.ValueOf(ctx),
-		})
+	results := fnValue.Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+	})
 
-		response := results[0].Interface()
-		errValue := results[1]
+	response = results[0].Interface()
+	errValue := results[1]
 
-		if !errValue.IsNil() {
-			functionErr := errValue.Interface().(error)
+	if !errValue.IsNil() {
+		functionErr := errValue.Interface().(error)
 
-			if _, abandonErr := e.abandon(ctx); abandonErr != nil {
-				return nil, false, abandonErr
-			}
-
-			return nil, false, functionErr
-		}
-
-		e.metadata.response = response
+		return nil, false, functionErr
 	}
 
-	complete, err := e.complete(ctx)
-
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !complete {
-		return nil, false, errors.New(
-			"Execution completed but could not be canonically finalized.",
-		)
-	}
-
-	return e.metadata.response, true, nil
+	return response, true, nil
 }

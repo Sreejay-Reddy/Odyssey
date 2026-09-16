@@ -22,7 +22,7 @@ class Step:
         self.kwargs = dict(kwargs)
 
 class Odyssey:
-    def __init__(self, db_url=None, pool_size=5, workers=1, config=None, namespace=None):
+    def __init__(self, db_url=None, pool_size=5, workers=4, config=None, namespace=None):
         self.namespace = namespace
         self.pool_size = pool_size
         self._pool_open = False
