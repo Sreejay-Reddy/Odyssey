@@ -20,12 +20,14 @@ func RunEventReader(ctx context.Context,
 				default:
 			}
 
-			header, err := ReadHeader(resultconn)
-			if err != nil {
-				return err
-			}
+			// msg, err := ReadMessage(resultconn)
+			// if err != nil {
+			// 	return err
+			// }
 
-			result, err := DecodeResult(resultconn, header)
+			var b []byte
+
+			result, err := DecodeResult(resultconn, b)
 			if err != nil {
 				return err
 			}

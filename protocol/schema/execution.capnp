@@ -6,8 +6,21 @@ $Go.package("protocol");
 $Go.import("github.com/sreejay-reddy/odyssey/protocol/gen/go");
 
 
+
+enum ExecutionStatus {
+    success @0;
+    failed  @1;
+}
+
 struct Execution {
 	key         @0 :Text;
 	targetID    @1 :UInt32;
 	input       @2 :Data;
+}
+
+struct ResultExecution {
+	key      @0 :Text;
+	targetID @1 :UInt32;
+	status   @2 :ExecutionStatus;
+	executionResult @3 :Data;
 }

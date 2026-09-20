@@ -1,87 +1,68 @@
 package socket
 
-import "encoding/binary"
+import (
+	"encoding/binary"
 
-var byteOrder = binary.BigEndian
+	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/batcher"
+	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
 
-func EncodeMessage(msg Message) []byte {
-	size := messageSize(msg)
-	buf := make([]byte, size)
+	"github.com/sreejay-reddy/odyssey/protocol/gen/go"
+	"capnproto.org/go/capnp/v3"
+)
 
-	offset := 4 
-
-	buf[offset] = msg.Version
-	offset++
-
-	buf[offset] = byte(msg.Type)
-	offset++
-
-	byteOrder.PutUint16(buf[offset:], msg.Flags)
-	offset += 2
-
-	byteOrder.PutUint64(buf[offset:], msg.BatchID)
-	offset += 8
-
-	byteOrder.PutUint32(buf[offset:], uint32(len(msg.Executions)))
-	offset += 4
-
-	for _, execution := range msg.Executions {
-		key := []byte(execution.Key)
-
-		byteOrder.PutUint16(buf[offset:], uint16(len(key)))
-		offset += 2
-
-		copy(buf[offset:], key)
-		offset += len(key)
-
-		byteOrder.PutUint32(buf[offset:], execution.TargetID)
-		offset += 4
-
-		byteOrder.PutUint32(buf[offset:], uint32(len(execution.Input)))
-		offset += 4
-
-		copy(buf[offset:], execution.Input)
-		offset += len(execution.Input)
+func EncodeMessage(r *registry.Registry, batch batcher.Batch) (*capnp.Message, error) {
+	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
+	if err != nil {
+		return nil, err
 	}
 
-	byteOrder.PutUint32(buf[:4], uint32(size-4))
-
-	return buf
-}
-
-func EncodeAck(ack Ack) []byte {
-	const size = 4 + 1 + 8 + 16 + 16
-
-	buf := make([]byte, size)
-
-	offset := 4 
-
-	buf[offset] = ack.Version
-	offset++
-
-	byteOrder.PutUint64(buf[offset:], ack.BatchID)
-	offset += 8
-
-	copy(buf[offset:], ack.SessionID[:])
-	offset += 16
-
-	copy(buf[offset:], ack.SDKID[:])
-
-	byteOrder.PutUint32(buf[:4], uint32(size-4))
-
-	return buf
-}
-
-func messageSize(msg Message) int {
-	size := 4 + 1 + 1 + 2 + 8 + 4
-
-	for _, execution := range msg.Executions {
-		size += 2                    // key length
-		size += len(execution.Key)   // key
-		size += 4                    // target ID
-		size += 4                    // input length
-		size += len(execution.Input) // input
+	root, err := protocol.NewRootSubmitMessage(seg)
+	if err != nil {
+		return nil, err
 	}
 
-	return size
+	root.SetProtocolVersion(ProtocolVersion)
+	root.SetBatchID(batch.ID)
+
+	list, err := root.NewExecutions(int32(len(batch.Executions)))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, claim := range batch.Executions {
+		registered, err := r.GetByName(claim.Target)
+		if err != nil {
+			return nil, err
+		}
+
+		exec := list.At(i)
+
+		exec.SetKey(claim.Key)
+		exec.SetTargetID(registered.TargetID)
+
+		err = exec.SetInput(claim.Input)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return msg, nil
+}
+
+func FrameMessage(msg *capnp.Message) ([]byte, error) {
+	payload, err := msg.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 4+len(payload))
+
+	binary.BigEndian.PutUint32(
+		buf[:4],
+		uint32(len(payload)),
+	)
+
+	copy(buf[4:], payload)
+
+	return buf, nil
 }

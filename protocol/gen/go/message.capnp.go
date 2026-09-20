@@ -14,12 +14,12 @@ type SubmitMessage capnp.Struct
 const SubmitMessage_TypeID = 0xd4e6910bdef3a5ab
 
 func NewSubmitMessage(s *capnp.Segment) (SubmitMessage, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 24, PointerCount: 1})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 1})
 	return SubmitMessage(st), err
 }
 
 func NewRootSubmitMessage(s *capnp.Segment) (SubmitMessage, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 24, PointerCount: 1})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 1})
 	return SubmitMessage(st), err
 }
 
@@ -63,20 +63,12 @@ func (s SubmitMessage) SetProtocolVersion(v uint16) {
 	capnp.Struct(s).SetUint16(0, v)
 }
 
-func (s SubmitMessage) MessageID() uint64 {
+func (s SubmitMessage) BatchID() uint64 {
 	return capnp.Struct(s).Uint64(8)
 }
 
-func (s SubmitMessage) SetMessageID(v uint64) {
-	capnp.Struct(s).SetUint64(8, v)
-}
-
-func (s SubmitMessage) BatchID() uint64 {
-	return capnp.Struct(s).Uint64(16)
-}
-
 func (s SubmitMessage) SetBatchID(v uint64) {
-	capnp.Struct(s).SetUint64(16, v)
+	capnp.Struct(s).SetUint64(8, v)
 }
 
 func (s SubmitMessage) Executions() (Execution_List, error) {
@@ -108,7 +100,7 @@ type SubmitMessage_List = capnp.StructList[SubmitMessage]
 
 // NewSubmitMessage creates a new list of SubmitMessage.
 func NewSubmitMessage_List(s *capnp.Segment, sz int32) (SubmitMessage_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 24, PointerCount: 1}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 1}, sz)
 	return capnp.StructList[SubmitMessage](l), err
 }
 
@@ -234,50 +226,198 @@ func (f RegistryMessage_Future) Struct() (RegistryMessage, error) {
 	return RegistryMessage(p.Struct()), err
 }
 
-const schema_f18dbdbd444ac10b = "x\xdal\xd3Mk\xd4^\x14\x06\xf0\xe7\xb9w\xdai" +
-	"\xe9k\x98\xee\xfe\xfc\x19\x10\x04\x15,\xb6\x0b\x0b\xba)" +
-	"u\x0a\xa6t\xb4\xb7-\"\xaeL\xa7\xb7\xd3\xd8\x99L" +
-	"\x9c\xdc\xc1V\x84\x82\xae\x05\xc5O\xe0\xc2\x85H)*" +
-	"\xb8P\xda\xe27\x10).\\\xb8\x10|\xdb\x08Z\xdc" +
-	"\x1aI&&Cqws87\xf9\x1d\xce\x93S5" +
-	"N\xe6\xc6\x06nH\x08u\xac\xab;\x9c8}\xf1\xfb" +
-	"\xde\xb7\x99-\xa8a2|\xbf?\xb1k\xdf\xfc\xfd\x06" +
-	"]\"\x0f\x14\x1e\xf2ma\x8b\xd1\xe91\xb7\xc1p\xca" +
-	":;qpga\x0fj\x88\x0c\x7f\xed\xbez\xf0\xae" +
-	"\xfb\xf9\xd3\xa4yZ<+\x94\xe3\x93-\xbe\x80\xe1\x93" +
-	"G\x07\x1f\xfa\xee\x7f\xde\x87\x1a\xa4\x0c\xfb^\xcf\x94v" +
-	"v\xee\xfe@W\xfc\xbe\xa3\xf2caLF\xa7\x932" +
-	"j\xae\x9b\x95\xff^~}\xf1\x09\xd6 ;z\xe3\x8e" +
-	"\xffs?\x0b\xc7s\xf1\xad\xdc6\xce\x85z]WZ" +
-	"\xc6m\x08o\xb4\xe2\xf8\x9e\x7ff:)\xd0\x9b#U" +
-	"\xbf\xcc\x019\x02\xd6\xf4\x11@MJ\xaaYAr\x84" +
-	"Q\xcd\x9e\x01\xd4yI\xb5(h\x09\x8eP\x00\x96\x1a" +
-	"\x07\xd4\xac\xa4\xba,\x98_\xd3\x1b\xec\x87`?\x18\x1a" +
-	"\xa7Y\xd5\xc6.\x01`\x0f\x04{\xc0\xa2\xeb\xf9-\xc3" +
-	"\x01\x08\x0e\x80aSW\xdd\xc047\x98X\x16\x8b\xf1" +
-	"\x95\x082\x9cB\x9c\xe8\xa3W%U-\x83\xb8'\x00" +
-	"\xb5,\xa9\xfc\x0eH\xfd\x1a\xa0j\x92j]\xd0\x92\x1c" +
-	"\xa1\x04\xacV\xa4\xf3%\xd5-\xf1O\xd1\x90\xe7\xd4u" +
-	"J^iy\x15\xe36<\x0c]\xe8(\x17\x8d\xa9\x95" +
-	"\x17\xfe\xde\x08\xeb:\x08\x9c\xaa\x1e\x15m\xf4Bk\xa9" +
-	"\xee\x9a\xb2\x0e\x82\xbcS\xd5\x87\xec\xb73\xbb\x95\xe2\xe7" +
-	"\x01\xb5*\xa9L\x84\x17m\xfc\xf5\xa9\x0cO\x99\xd8\xaf" +
-	"\x00\xcaH\xaa{\x82\xa1\xdfl\x98F\xa5Q\xe3%\xdd" +
-	"\x0c\"\"\xf3\x10\xccg\x1e\x1b,\xb1\x17\x82\xbd\xe0\xe6" +
-	"\x92c*\xabv\xfa\x9c\xae\x1d\xd2\x0b8\x08\xceIr" +
-	"8\xcb/\x18\x15\x0fO6\x9f\xac\xa7\xac\x8bq\xfdP" +
-	"@\xc6\xb3\x80\xa4\xb3\xd9\xf3\x9d\x09IfSSIB" +
-	"V\x05\x8b\xc1\xf2\x9a]J\x13\x10\xe8 \x1a&\xb6'" +
-	"\xb5\xcd\xf6\x96:\x98\xe9\x9f\xd3f\xfe\x09\x00\x00\xff\xff" +
-	"\x09z\xcah"
+type ResultMessage capnp.Struct
+
+// ResultMessage_TypeID is the unique identifier for the type ResultMessage.
+const ResultMessage_TypeID = 0xde4b47b992ff2425
+
+func NewResultMessage(s *capnp.Segment) (ResultMessage, error) {
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3})
+	return ResultMessage(st), err
+}
+
+func NewRootResultMessage(s *capnp.Segment) (ResultMessage, error) {
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3})
+	return ResultMessage(st), err
+}
+
+func ReadRootResultMessage(msg *capnp.Message) (ResultMessage, error) {
+	root, err := msg.Root()
+	return ResultMessage(root.Struct()), err
+}
+
+func (s ResultMessage) String() string {
+	str, _ := text.Marshal(0xde4b47b992ff2425, capnp.Struct(s))
+	return str
+}
+
+func (s ResultMessage) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
+	return capnp.Struct(s).EncodeAsPtr(seg)
+}
+
+func (ResultMessage) DecodeFromPtr(p capnp.Ptr) ResultMessage {
+	return ResultMessage(capnp.Struct{}.DecodeFromPtr(p))
+}
+
+func (s ResultMessage) ToPtr() capnp.Ptr {
+	return capnp.Struct(s).ToPtr()
+}
+func (s ResultMessage) IsValid() bool {
+	return capnp.Struct(s).IsValid()
+}
+
+func (s ResultMessage) Message() *capnp.Message {
+	return capnp.Struct(s).Message()
+}
+
+func (s ResultMessage) Segment() *capnp.Segment {
+	return capnp.Struct(s).Segment()
+}
+func (s ResultMessage) ProtocolVersion() uint16 {
+	return capnp.Struct(s).Uint16(0)
+}
+
+func (s ResultMessage) SetProtocolVersion(v uint16) {
+	capnp.Struct(s).SetUint16(0, v)
+}
+
+func (s ResultMessage) SdkID() ([]byte, error) {
+	p, err := capnp.Struct(s).Ptr(0)
+	return []byte(p.Data()), err
+}
+
+func (s ResultMessage) HasSdkID() bool {
+	return capnp.Struct(s).HasPtr(0)
+}
+
+func (s ResultMessage) SetSdkID(v []byte) error {
+	return capnp.Struct(s).SetData(0, v)
+}
+
+func (s ResultMessage) SessionID() ([]byte, error) {
+	p, err := capnp.Struct(s).Ptr(1)
+	return []byte(p.Data()), err
+}
+
+func (s ResultMessage) HasSessionID() bool {
+	return capnp.Struct(s).HasPtr(1)
+}
+
+func (s ResultMessage) SetSessionID(v []byte) error {
+	return capnp.Struct(s).SetData(1, v)
+}
+
+func (s ResultMessage) BatchID() uint64 {
+	return capnp.Struct(s).Uint64(8)
+}
+
+func (s ResultMessage) SetBatchID(v uint64) {
+	capnp.Struct(s).SetUint64(8, v)
+}
+
+func (s ResultMessage) Executions() (ResultExecution_List, error) {
+	p, err := capnp.Struct(s).Ptr(2)
+	return ResultExecution_List(p.List()), err
+}
+
+func (s ResultMessage) HasExecutions() bool {
+	return capnp.Struct(s).HasPtr(2)
+}
+
+func (s ResultMessage) SetExecutions(v ResultExecution_List) error {
+	return capnp.Struct(s).SetPtr(2, v.ToPtr())
+}
+
+// NewExecutions sets the executions field to a newly
+// allocated ResultExecution_List, preferring placement in s's segment.
+func (s ResultMessage) NewExecutions(n int32) (ResultExecution_List, error) {
+	l, err := NewResultExecution_List(capnp.Struct(s).Segment(), n)
+	if err != nil {
+		return ResultExecution_List{}, err
+	}
+	err = capnp.Struct(s).SetPtr(2, l.ToPtr())
+	return l, err
+}
+
+// ResultMessage_List is a list of ResultMessage.
+type ResultMessage_List = capnp.StructList[ResultMessage]
+
+// NewResultMessage creates a new list of ResultMessage.
+func NewResultMessage_List(s *capnp.Segment, sz int32) (ResultMessage_List, error) {
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3}, sz)
+	return capnp.StructList[ResultMessage](l), err
+}
+
+// ResultMessage_Future is a wrapper for a ResultMessage promised by a client call.
+type ResultMessage_Future struct{ *capnp.Future }
+
+func (f ResultMessage_Future) Struct() (ResultMessage, error) {
+	p, err := f.Future.Ptr()
+	return ResultMessage(p.Struct()), err
+}
+
+const schema_f18dbdbd444ac10b = "x\xda\x8c\x94\xdd\x8b\x1bU\x18\xc6\xdf\xe7\x9c\xc9\x17\xdd" +
+	"\xddd\x98x%\x18\x10\x8b X\xec\xb6\x18X/Z" +
+	"b\x16\xcd\xdah\xce\xa6\x88\x8a\x82\xd3\xec\xd9$6\x99" +
+	"\xc4\x9c\x19h\xb5\xb2\xa2\x14Zi/\xd6V\xd0K/" +
+	"z%%\xba\xa2\xb0\xcav\xa9\x7f\x81H\xf1\xc2\x8b^" +
+	"\x14\xfc\xba\xf1\xabx\xeb\xc8\x99If\x86\xb8\xea\xde\x1d" +
+	"\xde\xbc9\xf3\xfb\x9d\xe7=\xe7\x91\x07\xd9q\xe3\xf0\xfc" +
+	"\x86AL\x1cM\xa5\xfd\xa3\xe3\xec\xd6\xf8\xd7\xdf.\x92" +
+	"(\x00\xfew\xb7\xca7j\xaf\xfd\xf55\xa5X\x86\xe8" +
+	"\xc8A\xc6`\x1d\xd6K\xeba\xf6#\xc1/?\xfa\xcc" +
+	"/\xbb?\xaf\\\xdf\xab\xdb\xca\xf1o\xac{\xb8^\x99" +
+	"|L\xf0w\xaf|U\xba\xef\xf5w\xb6\xc8,\xb0\xb8" +
+	"\x97p\xe4:g\xb0\xb6\x83\xce\xcfx\x99\xe0W\xcc\xc7" +
+	"\xcaw\xdfn\xee\x92\xc8\x03\xfe\x9f7\xbe\xbc\xf2m\xfa" +
+	"\xd3O&\xdbn\xf3-\xebf\xd0\xbc\xc35\xc3G\xd7" +
+	"\xee\xde>\xb0\xf9\xc3-\x12\x0b`\xfe\x81\x9b+\xd5\x9d" +
+	"\x9d\xcb\xbfS\x0a\xba\xe5\x03\xe3\x8eu\xcd\xd0\xab\x0f\x0d" +
+	"\xcdp\xf0\x01\xff\xdd\xed'\x9e\xba=\xdb\x1c\xec'R" +
+	"w\xac\x97RZ\xf4\xf9T\x09\x04\xbf\xef\xae\xdf\xfb\xc5" +
+	"O\x9f\x7fO\xe6\x02f\x9b\xcf\xa7\xff\xb06\xd3zu" +
+	"9=\xa6\xc7}yF\xb6<\xb7;\xe0\xce\xa1\x96=" +
+	"t\x86K\xabRy=wyRv\xa8\x01\x88\x027" +
+	"\x88\x0c\x10\x99\xf6\xfdD\xe2E\x0e\xd1a\x00\x8a\xd05" +
+	"\xb9B$\xd68\xc4\x90\xc1d\xac\x08Fd\xf6\x97\x88" +
+	"D\x87C\xb8\x0c&G\x11\x9c\xc8|\xf5-\"1\xe4" +
+	"\x10\xe7\x182\xa7\xe5Y\xcc\x11\xc3\x1c\xc1w\xedQ[" +
+	"\xba\xb5*\x11!K\x0cY\xc21\xe5\xda\xae\xa7\x90\x8f" +
+	"\x03  O\x88\x90\xe1\x84\xac\x84yb\x98O\xfc\xc2" +
+	"\xa62\xcbQ\xab\xd6\x98\x8b4\x96\xb5\xc6q\x0eq\"" +
+	"\xd6\xa8i\x8d'9\xc4I\xad\x81PC,\x12\x89\x13" +
+	"\x1c\xe2\xb9\xff'.u\x9d\xa1\xe7\xfe\x03\x86\xcf\xc28" +
+	"\xcd\xc0,8\xd9l\xf0\x15\xb3\xa2\xdd\xcc\xdc\x12\xd1\x86" +
+	"\xf2Z-\xa9\xd4\xb1u\xbb\xdb\x93k\xfeH\xb6\xbb\xca" +
+	"\x1d\x9d\xc5d\x93\x93\xa5\xe0\xc33\xa9h\xf4\x979D" +
+	"/\xd6\xe9>\x94Le\xa2\xd3\x7f\x85H\xf48\xc4\x99" +
+	"D*\xdeb\x9c\xca^^y\xc7\xee\xcbH|\xdds" +
+	"Z\xc1`\xe4\x9fN\x94K\xae\xdb\xab7\xa7\xff\xf0\xfb" +
+	"R)\xbb-\x0f\xb1\x10\xba\xe9\x9d\xeaw\xdd\xbaT*" +
+	"c\xb7\xe5L\x14z&\xaa\x1c\xa2\xc1`N\xe1\xeb\x95" +
+	"8\x0bL&J\xbc@$\x1a\xa1\xa4?\x1c\x0d\xdcA" +
+	"k\xd0\xc3\xb3r\xa44\x0d2\xc4\x90!l\x9c\xb2\xdd" +
+	"V\xa7VE\x8e\x18r\x89\x18\x88;\x0a\x0b\x84\x06\x07" +
+	"\x0a\xf1\x0b@\xd0\xc5Y\xe0p\xb0\x92\xc0\xc5\x08\xf8\x0d" +
+	"\x0d|\x8eC\\\x88\x0f\xfb\xbc>\xc279\xc4\xa5\xc4" +
+	"a_\\%\x12\x178\xc4\xd5\xc4aoj\xb3K\x1c" +
+	"\xe2}\x06\xd3`E\x18D\xe6{Z\xed*\x87\xf8\xf8" +
+	"\xbf\xd4Jj\xedt\xad\x1a\xcd\x97\x92J\xff\\#D" +
+	"\xb5}\xcaG\x8f\xe5\xbf\xc9\x87#W\x97\xa5\xa0>\x93" +
+	"\xd7b|u\xa2\xbcj\xab\xc9\xbb3\x0d\xac2\xb9;" +
+	"\x1d\xb6\x1f\xf6p\xf2\x12\x98\xd1s\x1ab\xfe\x1d\x00\x00" +
+	"\xff\xff\x15mf\xe2"
 
 func RegisterSchema(reg *schemas.Registry) {
 	reg.Register(&schemas.Schema{
 		String: schema_f18dbdbd444ac10b,
 		Nodes: []uint64{
+			0x89f0efafb208af34,
 			0xad4ae9bfee4f3637,
+			0xb28a7b1e1fc293bf,
 			0xbf5383f3373b1142,
 			0xd4e6910bdef3a5ab,
+			0xde4b47b992ff2425,
 			0xe5b6e8ba1b66746d,
 		},
 		Compressed: true,
