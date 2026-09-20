@@ -19,6 +19,7 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage/postgres"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/transport/socket"
 
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -33,32 +34,17 @@ func runBatchLoop (ctx context.Context,
 			return  err
 		}
 
-		msg := socket.Message{
-			Type : socket.MessageSubmit,
-			Version : socket.ProtocolVersion,
-			Flags : 0,
-			BatchID : batch.ID,
-			Executions: make([]socket.Execution, 0, len(batch.Executions)),
+		msg, err := socket.EncodeMessage(r, batch)
+		if err != nil {
+			return err
 		}
 
-		for _, claim := range batch.Executions {
-
-			registered, err := r.GetByName(claim.Target)
-			if err != nil {
-				return err
-			}
-
-			execute := socket.Execution{
-				Key : claim.Key,
-				TargetID : registered.TargetID,
-				Input : claim.Input,
-			}
-			msg.Executions = append(msg.Executions, execute)
+		encoded, err := socket.FrameMessage(msg)
+		if err != nil {
+			return err
 		}
 
-		encodedMSG := socket.EncodeMessage(msg)
-
-		worker.Send<- encodedMSG
+		worker.Send<- encoded
 
 	}
 }
@@ -104,14 +90,14 @@ func run () (error) {
 
 	slog.Info("connected ack socket")
 
-	msgSize, err := socket.ReadHeader(ackconn)
+	msg, err := socket.ReadMessage(ackconn)
 	if err != nil {
 		return err
 	}
 
 	r := registry.New()
 
-	err = socket.DecodeRegistry(ackconn, r, msgSize)
+	err = socket.DecodeRegistry(msg, r)
 	if err != nil {
 		return err
 	}

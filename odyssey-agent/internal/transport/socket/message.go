@@ -6,7 +6,7 @@ import (
 
 
 const (
-	ProtocolVersion uint8 = 1
+	ProtocolVersion uint16 = 1
 )
 
 type MessageType uint8
@@ -31,8 +31,6 @@ type Execution struct {
 
 type Message struct {
 	Version    uint8
-	Type       MessageType
-	Flags      uint16
 	BatchID    uint64
 	Executions []Execution
 }

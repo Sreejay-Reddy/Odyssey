@@ -11,15 +11,22 @@ using Registry = import "registry.capnp";
 
 struct SubmitMessage {
     protocolVersion @0 :UInt16;
-    messageID       @1 :UInt64;
-    batchID         @2 :UInt64;
-    executions      @3 :List(Execution.Execution);
+    batchID         @1 :UInt64;
+    executions      @2 :List(Execution.Execution);
 }
 
 struct RegistryMessage {
 	sdkID     @0    :Data;
 	sessionID @1    :Data;
 	targets   @2    :List(Registry.Target);
+}
+
+struct ResultMessage {
+    protocolVersion @0 :UInt16;
+    sdkID           @1 :Data;
+    sessionID       @2 :Data;
+    batchID         @3 :UInt64;
+    executions      @4 :List(Execution.ResultExecution);
 }
 
 

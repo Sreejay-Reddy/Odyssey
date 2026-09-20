@@ -7,6 +7,50 @@ import (
 	text "capnproto.org/go/capnp/v3/encoding/text"
 )
 
+type ExecutionStatus uint16
+
+// ExecutionStatus_TypeID is the unique identifier for the type ExecutionStatus.
+const ExecutionStatus_TypeID = 0xb28a7b1e1fc293bf
+
+// Values of ExecutionStatus.
+const (
+	ExecutionStatus_success ExecutionStatus = 0
+	ExecutionStatus_failed  ExecutionStatus = 1
+)
+
+// String returns the enum's constant name.
+func (c ExecutionStatus) String() string {
+	switch c {
+	case ExecutionStatus_success:
+		return "success"
+	case ExecutionStatus_failed:
+		return "failed"
+
+	default:
+		return ""
+	}
+}
+
+// ExecutionStatusFromString returns the enum value with a name,
+// or the zero value if there's no such value.
+func ExecutionStatusFromString(c string) ExecutionStatus {
+	switch c {
+	case "success":
+		return ExecutionStatus_success
+	case "failed":
+		return ExecutionStatus_failed
+
+	default:
+		return 0
+	}
+}
+
+type ExecutionStatus_List = capnp.EnumList[ExecutionStatus]
+
+func NewExecutionStatus_List(s *capnp.Segment, sz int32) (ExecutionStatus_List, error) {
+	return capnp.NewEnumList[ExecutionStatus](s, sz)
+}
+
 type Execution capnp.Struct
 
 // Execution_TypeID is the unique identifier for the type Execution.
@@ -108,4 +152,115 @@ type Execution_Future struct{ *capnp.Future }
 func (f Execution_Future) Struct() (Execution, error) {
 	p, err := f.Future.Ptr()
 	return Execution(p.Struct()), err
+}
+
+type ResultExecution capnp.Struct
+
+// ResultExecution_TypeID is the unique identifier for the type ResultExecution.
+const ResultExecution_TypeID = 0x89f0efafb208af34
+
+func NewResultExecution(s *capnp.Segment) (ResultExecution, error) {
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2})
+	return ResultExecution(st), err
+}
+
+func NewRootResultExecution(s *capnp.Segment) (ResultExecution, error) {
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2})
+	return ResultExecution(st), err
+}
+
+func ReadRootResultExecution(msg *capnp.Message) (ResultExecution, error) {
+	root, err := msg.Root()
+	return ResultExecution(root.Struct()), err
+}
+
+func (s ResultExecution) String() string {
+	str, _ := text.Marshal(0x89f0efafb208af34, capnp.Struct(s))
+	return str
+}
+
+func (s ResultExecution) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
+	return capnp.Struct(s).EncodeAsPtr(seg)
+}
+
+func (ResultExecution) DecodeFromPtr(p capnp.Ptr) ResultExecution {
+	return ResultExecution(capnp.Struct{}.DecodeFromPtr(p))
+}
+
+func (s ResultExecution) ToPtr() capnp.Ptr {
+	return capnp.Struct(s).ToPtr()
+}
+func (s ResultExecution) IsValid() bool {
+	return capnp.Struct(s).IsValid()
+}
+
+func (s ResultExecution) Message() *capnp.Message {
+	return capnp.Struct(s).Message()
+}
+
+func (s ResultExecution) Segment() *capnp.Segment {
+	return capnp.Struct(s).Segment()
+}
+func (s ResultExecution) Key() (string, error) {
+	p, err := capnp.Struct(s).Ptr(0)
+	return p.Text(), err
+}
+
+func (s ResultExecution) HasKey() bool {
+	return capnp.Struct(s).HasPtr(0)
+}
+
+func (s ResultExecution) KeyBytes() ([]byte, error) {
+	p, err := capnp.Struct(s).Ptr(0)
+	return p.TextBytes(), err
+}
+
+func (s ResultExecution) SetKey(v string) error {
+	return capnp.Struct(s).SetText(0, v)
+}
+
+func (s ResultExecution) TargetID() uint32 {
+	return capnp.Struct(s).Uint32(0)
+}
+
+func (s ResultExecution) SetTargetID(v uint32) {
+	capnp.Struct(s).SetUint32(0, v)
+}
+
+func (s ResultExecution) Status() ExecutionStatus {
+	return ExecutionStatus(capnp.Struct(s).Uint16(4))
+}
+
+func (s ResultExecution) SetStatus(v ExecutionStatus) {
+	capnp.Struct(s).SetUint16(4, uint16(v))
+}
+
+func (s ResultExecution) ExecutionResult() ([]byte, error) {
+	p, err := capnp.Struct(s).Ptr(1)
+	return []byte(p.Data()), err
+}
+
+func (s ResultExecution) HasExecutionResult() bool {
+	return capnp.Struct(s).HasPtr(1)
+}
+
+func (s ResultExecution) SetExecutionResult(v []byte) error {
+	return capnp.Struct(s).SetData(1, v)
+}
+
+// ResultExecution_List is a list of ResultExecution.
+type ResultExecution_List = capnp.StructList[ResultExecution]
+
+// NewResultExecution creates a new list of ResultExecution.
+func NewResultExecution_List(s *capnp.Segment, sz int32) (ResultExecution_List, error) {
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2}, sz)
+	return capnp.StructList[ResultExecution](l), err
+}
+
+// ResultExecution_Future is a wrapper for a ResultExecution promised by a client call.
+type ResultExecution_Future struct{ *capnp.Future }
+
+func (f ResultExecution_Future) Struct() (ResultExecution, error) {
+	p, err := f.Future.Ptr()
+	return ResultExecution(p.Struct()), err
 }
