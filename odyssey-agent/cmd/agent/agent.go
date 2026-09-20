@@ -149,13 +149,13 @@ func run () (error) {
 	batchclient := batcher.New(writer, r, cfg.Agent.SDK.BatchSize, time.Duration(1)*time.Second)
 
 	for _, worker := range sch.Workers() {
-		go func(){
+		go func(worker scheduler.Worker){
 		err := runBatchLoop(ctx, worker, r, batchclient)
 			if err != nil {
 				slog.Error("batch loop failed", "error", err)
 				stop()
 			}
-		}()
+		}(worker)
 	}
 
 	for _, eventConn := range eventConns {

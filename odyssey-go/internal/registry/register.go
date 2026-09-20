@@ -1,11 +1,11 @@
 package registry
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"runtime"
-    "context"
-    "sync/atomic"
+	"sync/atomic"
 
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
@@ -52,9 +52,18 @@ func (r *Registry) Register(cfg configutil.Config, target string, fn any, ttlMS 
 		)
 	}
 
+    errorType := reflect.TypeOf((*error)(nil)).Elem()
 
+    if t.NumOut() != 2 {
+        return errors.New("registered function must return (response, error)")
+    }
+
+    if !t.Out(1).Implements(errorType) {
+        return errors.New("registered function must return (response, error)")
+    }
+
+    ResponseType := t.Out(0)
     inputType := t.In(1)
-
 
     if ttlMS <= 0 {
         return errors.New("ttlMS must be greater than zero")
@@ -63,6 +72,10 @@ func (r *Registry) Register(cfg configutil.Config, target string, fn any, ttlMS 
 	if inputType.Kind() != reflect.Struct {
 		return errors.New("inputType must be a struct")
 	}
+    
+    if ResponseType.Kind() != reflect.Struct {
+        return errors.New("ResponseType must be a struct")
+    }
 
     if _, exists := r.byName[target]; exists {
         return errors.New("target already registered")
