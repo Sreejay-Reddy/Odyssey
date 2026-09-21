@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"capnproto.org/go/capnp/v3"
 )
 
 type Scheduler struct {
@@ -16,10 +18,10 @@ type Worker struct {
 	ID   string
 	Command net.Conn
 	Event net.Conn
-	Send chan<- []byte
+	Send chan<- *capnp.Message
 }
 
-func NewScheduler(commands []net.Conn, events []net.Conn, sends []chan<- []byte) *Scheduler {
+func NewScheduler(commands []net.Conn, events []net.Conn, sends []chan<- *capnp.Message) *Scheduler {
 	workers := make([]Worker, len(commands))
 
     for i := range commands {

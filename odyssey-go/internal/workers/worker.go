@@ -19,6 +19,9 @@ func (w *Worker) RunWorker(
 	command net.Conn, 
 	registry *registry.Registry) error {
 
+		command.Read()
+
+
 		return nil
 
 }

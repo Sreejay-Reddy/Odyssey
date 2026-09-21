@@ -19,7 +19,7 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage/postgres"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/transport/socket"
 
-
+	"capnproto.org/go/capnp/v3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -39,12 +39,7 @@ func runBatchLoop (ctx context.Context,
 			return err
 		}
 
-		encoded, err := socket.FrameMessage(msg)
-		if err != nil {
-			return err
-		}
-
-		worker.Send<- encoded
+		worker.Send<- msg
 
 	}
 }
@@ -90,7 +85,9 @@ func run () (error) {
 
 	slog.Info("connected ack socket")
 
-	msg, err := socket.ReadMessage(ackconn)
+	decoder := capnp.NewDecoder(ackconn)
+
+	msg, err := decoder.Decode()
 	if err != nil {
 		return err
 	}
@@ -109,10 +106,10 @@ func run () (error) {
 
 	slog.Info("Starting Workers....", "Workers", cfg.Agent.SDK.Workers)
 
-	sends := make([]chan<- []byte, len(commandConns))
+	sends := make([]chan<- *capnp.Message, len(commandConns))
 
 	for i, conn := range commandConns {
-		send := make(chan []byte, 64)
+		send := make(chan *capnp.Message, 64)
 
 		go socket.RunWriter(ctx, conn, send)
 

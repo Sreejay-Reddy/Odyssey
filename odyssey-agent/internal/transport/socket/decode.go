@@ -14,30 +14,6 @@ import (
 	"capnproto.org/go/capnp/v3"
 )
 
-func ReadMessage(conn net.Conn) (*capnp.Message, error) {
-    header := make([]byte, 4)
-
-    _, err := io.ReadFull(conn, header)
-	if err != nil {
-        return nil, err
-    }
-
-    frameLength := binary.BigEndian.Uint32(header)
-    buf := make([]byte, frameLength)
-
-    _, err = io.ReadFull(conn, buf)
-	if err != nil {
-		return nil, err
-	}
-
-	msg, err := capnp.Unmarshal(buf)
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
-}
-
 func DecodeRegistry(msg *capnp.Message, r *registry.Registry) error {
 	root, err := protocol.ReadRootRegistryMessage(msg)
 	if err != nil {
@@ -98,7 +74,7 @@ func DecodeRegistry(msg *capnp.Message, r *registry.Registry) error {
     return nil
 }
 
-func DecodeResult(conn net.Conn ,buf []byte) (Result, error) {
+func DecodeResult(conn net.Conn, buf []byte) (Result, error) {
 	_, err := io.ReadFull(conn, buf)
 	if err != nil {
 		return Result{}, err
