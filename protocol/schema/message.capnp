@@ -25,8 +25,7 @@ struct ResultMessage {
     protocolVersion @0 :UInt16;
     sdkID           @1 :Data;
     sessionID       @2 :Data;
-    batchID         @3 :UInt64;
-    executions      @4 :List(Execution.ResultExecution);
+    executions      @3 :List(Execution.ResultExecution);
 }
 
 

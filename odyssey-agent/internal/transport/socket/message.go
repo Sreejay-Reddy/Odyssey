@@ -19,21 +19,9 @@ const (
 )
 
 const (
-	StatusSuccess ExecutionStatus = 1
-	StatusFailed  ExecutionStatus = 2
+    StatusSuccess ExecutionStatus = 0
+    StatusFailed  ExecutionStatus = 1
 )
-
-type Execution struct {
-	Key      string
-	TargetID uint32
-	Input    []byte
-}
-
-type Message struct {
-	Version    uint8
-	BatchID    uint64
-	Executions []Execution
-}
 
 type ResultExecution struct {
 	Key      string
@@ -43,7 +31,7 @@ type ResultExecution struct {
 }
 
 type Result struct {
-	Version    uint8
+	Version    uint16
 	SDKID      [16]byte
 	SessionID  [16]byte
 	BatchID    uint64

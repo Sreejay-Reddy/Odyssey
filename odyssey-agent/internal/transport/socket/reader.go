@@ -7,12 +7,15 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/batcher"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
+
+	"capnproto.org/go/capnp/v3"
 )
 
 func RunEventReader(ctx context.Context, 
 	resultconn net.Conn, 
 	batchclient *batcher.Batcher,
 	r *registry.Registry) (error) {
+		decoder := capnp.NewDecoder(resultconn)
 		for {
 			select {
 				case <-ctx.Done():
@@ -20,19 +23,18 @@ func RunEventReader(ctx context.Context,
 				default:
 			}
 
-			// msg, err := ReadMessage(resultconn)
-			// if err != nil {
-			// 	return err
-			// }
+			msg, err := decoder.Decode()
+			if err != nil {
+				return err
+			}
 
-			var b []byte
-
-			result, err := DecodeResult(resultconn, b)
+			result, err := DecodeResult(msg)
 			if err != nil {
 				return err
 			}
 
 			executions := make([]storage.Execution, 0, len(result.Executions))
+			failedexecutions := make([]storage.Execution, 0, len(result.Executions))
 
 			for _, execution := range result.Executions {
 
@@ -47,7 +49,11 @@ func RunEventReader(ctx context.Context,
 					ExecutionResult: execution.ExecutionResult,
 				}
 
-				executions = append(executions, executed)
+				if (execution.Status == StatusSuccess) {
+					executions = append(executions, executed)
+				}else {
+					failedexecutions = append(failedexecutions, executed)
+				}
 			}
 
 			go batchclient.BatchComplete(ctx, executions)

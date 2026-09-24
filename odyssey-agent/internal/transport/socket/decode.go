@@ -1,12 +1,7 @@
 package socket
 
 import (
-	"io"
-	"fmt"
-	"net"
 	"errors"
-	"encoding/binary"
-	"encoding/json"
 
 	"github.com/sreejay-reddy/odyssey/protocol/gen/go"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
@@ -74,96 +69,51 @@ func DecodeRegistry(msg *capnp.Message, r *registry.Registry) error {
     return nil
 }
 
-func DecodeResult(conn net.Conn, buf []byte) (Result, error) {
-	_, err := io.ReadFull(conn, buf)
+func DecodeResult(msg *capnp.Message) (Result, error) {
+	root, err := protocol.ReadRootResultMessage(msg)
 	if err != nil {
 		return Result{}, err
 	}
 
-	const headerSize = 1 + 16 + 16 + 8 + 4
-
-	if len(buf) < headerSize {
-		return Result{}, fmt.Errorf("result too short")
+	resultMsg := Result{
+		Version: root.ProtocolVersion(),
+		BatchID: root.BatchID(),
 	}
 
-	offset := 0
+	results, err := root.Executions()
+	if err != nil {
+		return Result{}, err
+	}
 
-	result := Result{}
+	executions := make([]ResultExecution, 0, results.Len())
 
-	result.Version = buf[offset]
-	offset++
+	for i:=0; i<results.Len(); i++ {
+		result := results.At(i)
 
-	copy(result.SDKID[:], buf[offset:offset+16])
-	offset += 16
-
-	copy(result.SessionID[:], buf[offset:offset+16])
-	offset += 16
-
-	result.BatchID = binary.BigEndian.Uint64(buf[offset:])
-	offset += 8
-
-	executionCount := binary.BigEndian.Uint32(buf[offset:])
-	offset += 4
-
-	result.Executions = make([]ResultExecution, 0, executionCount)
-
-	for i := uint32(0); i < executionCount; i++ {
-		if offset+2 > len(buf) {
-			return Result{}, fmt.Errorf("truncated result key length")
+		key, err := result.Key()
+		if err != nil {
+			return Result{}, err
 		}
 
-		keyLength := int(binary.BigEndian.Uint16(buf[offset:]))
-		offset += 2
+		targetID := result.TargetID()
+		status := result.Status()
 
-		if offset+keyLength > len(buf) {
-			return Result{}, fmt.Errorf("truncated result key")
+		executionResult, err := result.ExecutionResult()
+		if err != nil {
+			return Result{}, err
 		}
 
-		key := string(buf[offset : offset+keyLength])
-		offset += keyLength
-
-		if offset+4 > len(buf) {
-			return Result{}, fmt.Errorf("truncated result target ID")
-		}
-
-		targetID := binary.BigEndian.Uint32(buf[offset:])
-		offset += 4
-
-		if offset+1 > len(buf) {
-			return Result{}, fmt.Errorf("truncated result status")
-		}
-
-		status := ExecutionStatus(buf[offset])
-		offset++
-
-		if offset+4 > len(buf) {
-			return Result{}, fmt.Errorf("truncated result payload length")
-		}
-
-		resultLength := int(binary.BigEndian.Uint32(buf[offset:]))
-		offset += 4
-
-		if offset+resultLength > len(buf) {
-			return Result{}, fmt.Errorf("truncated result payload")
-		}
-
-		executionResult := json.RawMessage(buf[offset : offset+resultLength])
-		offset += resultLength
-
-		result.Executions = append(result.Executions, ResultExecution{
-			Key:      key,
+		execution := ResultExecution{
+			Key: key,
 			TargetID: targetID,
+			Status: ExecutionStatus(status),
 			ExecutionResult: executionResult,
-			Status:   status,
-		})
+		}
+
+		executions = append(executions, execution)
 	}
 
-	if offset != len(buf) {
-		return Result{}, fmt.Errorf(
-			"unexpected trailing data: %d bytes",
-			len(buf)-offset,
-		)
-	}
+	resultMsg.Executions = executions
 
-	return result, nil
+	return resultMsg, nil 
 }
