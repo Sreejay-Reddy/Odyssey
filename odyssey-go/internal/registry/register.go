@@ -114,3 +114,13 @@ func (r *Registry) GetByID(targetID uint32) (*Registered, bool) {
     return value, exists
 }
 
+func (r *Registry) All() []*Registered {
+	registered := make([]*Registered, 0, len(r.byID))
+
+	for _, target := range r.byID {
+		registered = append(registered, target)
+	}
+
+	return registered
+}
+

@@ -17,7 +17,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
-	github.com/sreejay-reddy/odyssey/protocol v0.0.0-00010101000000-000000000000 // indirect
+	github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260921184719-0d95b08f915d // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 )

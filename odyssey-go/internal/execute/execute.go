@@ -10,14 +10,19 @@ import (
 )
 
 type Execution struct {
-	registry *registry.Registry
+	Registry *registry.Registry
 }
 
-func (e *Execution) Execute(ctx context.Context, key string, target string, input json.RawMessage) (any, bool, error) {
-	registered, exists := e.registry.GetByName(target)
+func (e *Execution) Execute(ctx context.Context, key string, targetID uint32, input json.RawMessage) (any, error) {
+	select {
+    	case <-ctx.Done():
+        	return nil, ctx.Err()
+    	default:
+    }
+	registered, exists := e.Registry.GetByID(targetID)
 
 	if !exists {
-		return nil, false, errors.New("target is not registered")
+		return nil, errors.New("target is not registered")
 	}
 
 	if len(input) == 0 {
@@ -33,7 +38,7 @@ func (e *Execution) Execute(ctx context.Context, key string, target string, inpu
 
 	err := json.Unmarshal(inputJSON, inputValue.Interface())
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	inputStruct := inputValue.Elem()
@@ -49,9 +54,9 @@ func (e *Execution) Execute(ctx context.Context, key string, target string, inpu
 	if !errValue.IsNil() {
 		functionErr := errValue.Interface().(error)
 
-		return nil, false, functionErr
+		return nil, functionErr
 	}
 	
 
-	return response, true, nil
+	return response, nil
 }

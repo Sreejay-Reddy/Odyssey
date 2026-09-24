@@ -1,8 +1,6 @@
 package socket
 
 import (
-	"encoding/binary"
-
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/batcher"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
 
@@ -10,7 +8,7 @@ import (
 	"capnproto.org/go/capnp/v3"
 )
 
-func EncodeMessage(r *registry.Registry, batch batcher.Batch) (*capnp.Message, error) {
+func EncodeBatchMessage(r *registry.Registry, batch batcher.Batch) (*capnp.Message, error) {
 	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
 	if err != nil {
 		return nil, err
@@ -47,22 +45,4 @@ func EncodeMessage(r *registry.Registry, batch batcher.Batch) (*capnp.Message, e
 	}
 
 	return msg, nil
-}
-
-func FrameMessage(msg *capnp.Message) ([]byte, error) {
-	payload, err := msg.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	buf := make([]byte, 4+len(payload))
-
-	binary.BigEndian.PutUint32(
-		buf[:4],
-		uint32(len(payload)),
-	)
-
-	copy(buf[4:], payload)
-
-	return buf, nil
 }

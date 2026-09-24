@@ -34,7 +34,7 @@ func runBatchLoop (ctx context.Context,
 			return  err
 		}
 
-		msg, err := socket.EncodeMessage(r, batch)
+		msg, err := socket.EncodeBatchMessage(r, batch)
 		if err != nil {
 			return err
 		}
