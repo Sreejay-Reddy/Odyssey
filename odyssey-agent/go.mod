@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260921184719-0d95b08f915d
+	github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127
 	gopkg.in/yaml.v3 v3.0.1
 )
 

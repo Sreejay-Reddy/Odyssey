@@ -77,7 +77,6 @@ func DecodeResult(msg *capnp.Message) (Result, error) {
 
 	resultMsg := Result{
 		Version: root.ProtocolVersion(),
-		BatchID: root.BatchID(),
 	}
 
 	results, err := root.Executions()

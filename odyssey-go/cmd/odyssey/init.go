@@ -6,7 +6,6 @@ import (
 	"os"
 
 	odyssey "github.com/sreejay-reddy/odyssey/odyssey-go"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +19,10 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("DATABASE_URL is required")
 		}
 
-		cfg := configutil.Config{}
-
-		client := odyssey.NewClient(dbURL, cfg)
+		client, err := odyssey.NewClient(dbURL)
+		if err != nil {
+			return err
+		}
 
 		if err := client.InitDB(context.Background()); err != nil {
 			return fmt.Errorf("failed to initialize database: %w", err)

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/cli"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
-	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/config"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 )
@@ -14,15 +14,22 @@ import (
 type Client struct{
     dbURL string
     config configutil.Config
+    state configutil.State
     registry *registry.Registry
 }
 
-func NewClient(dbURL string, cfg configutil.Config) *Client {
+func NewClient(dbURL string) (*Client, error) {
+    cfg, state, err := cli.Init()
+    if err != nil {
+        return nil, err
+    }
+
     return &Client{
         dbURL: dbURL,
         config: cfg,
+        state: state,
         registry: registry.New(),
-    }
+    }, nil 
 }
 
 func (c *Client) connect(ctx context.Context) (*pgx.Conn, error) {
@@ -54,14 +61,6 @@ func (c *Client) Register(target string, fn any, ttlMS int64) error {
     return c.registry.Register(c.config, target, fn, ttlMS)
 }
 
-func (c *Client) GetByName(target string) (*registry.Registered, bool) {
-    return c.registry.GetByName(target)
-}
-
-func (c *Client) GetByID(targetID uint32) (*registry.Registered, bool) {
-    return c.registry.GetByID(targetID)
-}
-
 func (c *Client) BuildLedger(
     ctx context.Context, 
     key string, 
@@ -91,27 +90,4 @@ func (c *Client) Serve(addr string) error {
 
     // return server.Serve(addr)
     return nil
-}
-
-func LoadConfig() (configutil.Config, error) {
-    path, err := config.FindYAML()
-    if err != nil {
-        return configutil.Config{}, err
-    }
-
-    configyaml, err := config.ReadYAML(path)
-    if err != nil {
-        return configutil.Config{}, err
-    }
-
-    return configyaml, nil
-}
-
-func LoadConfigFrom(path string) (configutil.Config, error){
-    configyaml, err := config.ReadYAML(path)
-    if err != nil {
-        return configutil.Config{}, err
-    }
-
-    return configyaml, nil
 }

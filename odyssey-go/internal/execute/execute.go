@@ -13,7 +13,7 @@ type Execution struct {
 	Registry *registry.Registry
 }
 
-func (e *Execution) Execute(ctx context.Context, key string, targetID uint32, input json.RawMessage) (any, error) {
+func (e *Execution) Execute(ctx context.Context, key string, targetID uint32, input json.RawMessage) (json.RawMessage, error) {
 	select {
     	case <-ctx.Done():
         	return nil, ctx.Err()
@@ -56,7 +56,12 @@ func (e *Execution) Execute(ctx context.Context, key string, targetID uint32, in
 
 		return nil, functionErr
 	}
+
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		return nil, err
+	}
 	
 
-	return response, nil
+	return responseJSON, nil
 }

@@ -11,19 +11,11 @@ import (
 	"capnproto.org/go/capnp/v3"
 )
 
-type Worker struct {
-	WorkerID string
-	Event    net.Conn
-	Command	 net.Conn
-	registry *registry.Registry
-}
-
-func (w *Worker) RunWorker(
+func RunWorker(
 	ctx context.Context,
-	workerID string, 
-	event net.Conn, 
 	command net.Conn, 
-	r *registry.Registry) error {
+	r *registry.Registry,
+	events chan<- Response) error {
 
 	decoder := capnp.NewDecoder(command)
 	worker := execute.Execution{
@@ -50,11 +42,35 @@ func (w *Worker) RunWorker(
 
 		for _, execution := range commandMsg.Executions {
 			go func (execution socket.Execution){
-				_, _ = worker.Execute(ctx, 
+				response, err := worker.Execute(
+					ctx, 
 					execution.Key, 
 					execution.TargetID, 
 					execution.Input,
 				)
+
+				if err != nil {
+					res := Response{
+						Key: execution.Key,
+						TargetID: execution.TargetID,
+						err: err,
+						Status: socket.StatusFailed,
+					}
+
+					events <- res
+				}
+
+				if err == nil {
+					res := Response{
+						Key: execution.Key,
+						TargetID: execution.TargetID,
+						err: nil,
+						Status: socket.StatusSuccess,
+						Response: response,
+					}
+
+					events <- res
+				}
 			}(execution)
 
 		}

@@ -24,8 +24,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260921184719-0d95b08f915d h1:2O4c/4YFraOcQSML1LtyW8TrQfdaRNCfyOprlfbgJtY=
-github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260921184719-0d95b08f915d/go.mod h1:UYFWsAcLuQ6hQTTsLbC+v5CqjQODmqHzTwbeKgKST7w=
+github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127 h1:9SavWZeFU6IoCpdDGs/5uh7+OeeMVCS7DcYRoC5tZVg=
+github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127/go.mod h1:UYFWsAcLuQ6hQTTsLbC+v5CqjQODmqHzTwbeKgKST7w=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
