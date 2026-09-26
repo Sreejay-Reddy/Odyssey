@@ -1,13 +1,14 @@
 package socket
 
 import (
+	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 
-	"github.com/sreejay-reddy/odyssey/protocol/gen/go"
 	"capnproto.org/go/capnp/v3"
+	"github.com/sreejay-reddy/odyssey/protocol/gen/go"
 )
 
-func EncodeRegistry(r *registry.Registry) (*capnp.Message, error) {
+func EncodeRegistry(r *registry.Registry, state configutil.State) (*capnp.Message, error) {
 	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
 	if err != nil {
 		return nil, err
@@ -15,14 +16,12 @@ func EncodeRegistry(r *registry.Registry) (*capnp.Message, error) {
 
 	root, err := protocol.NewRegistryMessage(seg)
 
-	sdkID := []byte("testing")
-	err = root.SetSdkID(sdkID)
+	err = root.SetSdkID(state.SDKID[:])
 	if err != nil {
 		return nil, err
 	}
 
-	sessionID := []byte("testing")
-	err = root.SetSessionID(sessionID)
+	err = root.SetSessionID(state.SessionID[:])
 	if err != nil {
 		return nil, err
 	}

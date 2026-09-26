@@ -24,7 +24,7 @@ func Start(
 	}
 	ackencoder := capnp.NewEncoder(ackconn)
 
-	registryMsg, err := socket.EncodeRegistry(r)
+	registryMsg, err := socket.EncodeRegistry(r, state)
 	if err != nil {
 		return err
 	}
