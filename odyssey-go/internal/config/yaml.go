@@ -1,41 +1,52 @@
 package config
 
 import (
-	"errors"
 	"os"
-	"path/filepath"
+	"encoding/json"
 
 	"gopkg.in/yaml.v3"
+	"github.com/google/uuid"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 )
 
-func FindYAML() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
+const defaultConfig = 
+`
+version : 1
+
+agent:
+    sdk:
+        workers: 4
+        batchsize: 64
+    postgres:
+        pool_size: 15
+
+registry:
+  default:
+    retry:
+      policy: forever
+      delay: 2s
+
+    on_failure:
+      notify: slack
+      wait_for_input: true
+`
+
+func CreateConfig(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 
-	for {
-		path := filepath.Join(dir, "odyssey.yaml")
-
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-
-		parent := filepath.Dir(dir)
-
-		if parent == dir {
-			break
-		}
-
-		dir = parent
-	}
-
-	return "", errors.New("odyssey.yaml not found")
+	return os.WriteFile(
+		path,
+		[]byte(defaultConfig),
+		0644,
+	)
 }
 
-func ReadYAML(path string) (configutil.Config, error) {
-	data, err := os.ReadFile(path)
+func LoadConfig() (configutil.Config, error) {
+	data, err := os.ReadFile("odyssey/odyssey.yaml")
 	if err != nil {
 		return configutil.Config{}, err
 	}
@@ -47,4 +58,34 @@ func ReadYAML(path string) (configutil.Config, error) {
 	}
 
 	return config, nil
+}
+
+func LoadState() (configutil.State, error) {
+    state := configutil.State{}
+
+    sdkPath := "odyssey/sdk.json"
+
+    data, err := os.ReadFile(sdkPath)
+    if os.IsNotExist(err) {
+        state.SDKID = uuid.New()
+
+        data, err := json.Marshal(state.SDKID)
+        if err != nil {
+            return configutil.State{}, err
+        }
+
+        if err := os.WriteFile(sdkPath, data, 0644); err != nil {
+            return configutil.State{}, err
+        }
+    } else if err != nil {
+        return configutil.State{}, err
+    } else {
+        if err := json.Unmarshal(data, &state.SDKID); err != nil {
+            return configutil.State{}, err
+        }
+    }
+
+    state.SessionID = uuid.New()
+
+    return state, nil
 }

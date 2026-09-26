@@ -34,7 +34,6 @@ type Result struct {
 	Version    uint16
 	SDKID      [16]byte
 	SessionID  [16]byte
-	BatchID    uint64
 	Executions []ResultExecution
 }
 

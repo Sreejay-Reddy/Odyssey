@@ -50,3 +50,44 @@ func EncodeRegistry(r *registry.Registry) (*capnp.Message, error) {
 
 	return msg, nil
 }
+
+func EncodeResult(result Result) (*capnp.Message, error) {
+	msg, seg, err := capnp.NewMessage(capnp.SingleSegment(nil))
+	if err != nil {
+		return nil, err
+	}
+
+	root, err := protocol.NewRootResultMessage(seg)
+	if err != nil {
+		return nil, err
+	}
+
+	root.SetProtocolVersion(result.Version)
+	root.SetSdkID(result.SDKID[:])
+	root.SetSessionID(result.SessionID[:])
+
+	list, err := root.NewExecutions(int32(len(result.Executions)))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, exec := range result.Executions {
+		msgExec := list.At(i)
+
+		err := msgExec.SetKey(exec.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		msgExec.SetTargetID(exec.TargetID)
+		msgExec.SetStatus(protocol.ExecutionStatus((exec.Status)))
+
+		err = msgExec.SetExecutionResult(exec.ExecutionResult)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return msg, nil
+}
