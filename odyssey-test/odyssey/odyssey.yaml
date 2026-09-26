@@ -1,0 +1,19 @@
+
+version : 1
+
+agent:
+    sdk:
+        workers: 4
+        batchsize: 64
+    postgres:
+        pool_size: 15
+
+registry:
+  default:
+    retry:
+      policy: forever
+      delay: 2s
+
+    on_failure:
+      notify: slack
+      wait_for_input: true
