@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-    "github.com/sreejay-reddy/odyssey/odyssey-go/internal/cli"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/buildledger"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/cli"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
+	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/server"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/types"
 )
 
@@ -83,11 +84,11 @@ func (c *Client) BuildLedger(
         return err
 }
 
-func (c *Client) Serve(addr string) error {
-    _ = Server{
-        client: c,
+func (c *Client) Serve(ctx context.Context) error {
+    err := server.Start(ctx, c.registry, c.config, c.state)
+    if err != nil {
+        return err
     }
 
-    // return server.Serve(addr)
-    return nil
+    return  nil
 }
