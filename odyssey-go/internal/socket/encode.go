@@ -1,6 +1,8 @@
 package socket
 
 import (
+	"fmt"
+
 	"github.com/sreejay-reddy/odyssey/odyssey-go/configutil"
 	"github.com/sreejay-reddy/odyssey/odyssey-go/internal/registry"
 
@@ -15,11 +17,18 @@ func EncodeRegistry(r *registry.Registry, state configutil.State) (*capnp.Messag
 	}
 
 	root, err := protocol.NewRegistryMessage(seg)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("sdk_id: %b", state.SDKID)
 
 	err = root.SetSdkID(state.SDKID[:])
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("sdk_id: %b", state.SessionID)
 
 	err = root.SetSessionID(state.SessionID[:])
 	if err != nil {
