@@ -27,6 +27,8 @@ github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWb
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
 github.com/sreejay-reddy/odyssey/odyssey-go v0.0.52 h1:J9wSXU3c86ryi/6BCY9oWzlVQYusYrEbprnB1mXJ7vI=
 github.com/sreejay-reddy/odyssey/odyssey-go v0.0.52/go.mod h1:RpIcDqVeKP54iWz3kezX0tg4FofMvXeYxRbtX4irOcg=
+github.com/sreejay-reddy/odyssey/odyssey-go v0.0.53 h1:hT7YYKRgxCdxuCBZ/L30e7327gUiH5AqJHTW2C1XZcw=
+github.com/sreejay-reddy/odyssey/odyssey-go v0.0.53/go.mod h1:RpIcDqVeKP54iWz3kezX0tg4FofMvXeYxRbtX4irOcg=
 github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127 h1:9SavWZeFU6IoCpdDGs/5uh7+OeeMVCS7DcYRoC5tZVg=
 github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127/go.mod h1:UYFWsAcLuQ6hQTTsLbC+v5CqjQODmqHzTwbeKgKST7w=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
