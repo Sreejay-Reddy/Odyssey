@@ -1,8 +1,11 @@
 package socket
 
 import (
+	"os"
 	"fmt"
 	"net"
+	"time"
+	"context"
 	"path/filepath"
 
 )
@@ -10,7 +13,30 @@ import (
 const SocketDir = "/tmp/odyssey"
 const AckPath = "/tmp/odyssey-ack.sock"
 
-func CreateWorkers(workers int) ([]net.Conn, []net.Conn, error){
+func createListener(ctx context.Context, path string) (net.Listener, error) {
+    if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+        return nil, err
+    }
+
+    for {
+        listener, err := net.Listen("unix", path)
+        if err == nil {
+            return listener, nil
+        }
+
+        timer := time.NewTimer(time.Second)
+
+        select {
+        case <-ctx.Done():
+            timer.Stop()
+            return nil, ctx.Err()
+
+        case <-timer.C:
+        }
+    }
+}
+
+func CreateWorkers(ctx context.Context, workers int) ([]net.Conn, []net.Conn, error){
 	sockets := make([]net.Conn, 0, workers)
 	eventSockets := make([]net.Conn, 0, workers)
 
@@ -23,12 +49,12 @@ func CreateWorkers(workers int) ([]net.Conn, []net.Conn, error){
 		path := filepath.Join(SocketDir, workerID+".sock")
 		resultPath := filepath.Join(SocketDir, resultWorkerID+".sock")
 
-		listener, err := net.Listen("unix", path)
+		listener, err := createListener(ctx, path)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		eventListener, err := net.Listen("unix", resultPath)
+		eventListener, err := createListener(ctx, resultPath)
 		if err != nil {
 			return nil, nil, err
 		}

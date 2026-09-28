@@ -1,11 +1,12 @@
 package odyssey
 
 const schemaSQL = `
-CREATE SEQUENCE IF NOT EXISTS odyssey_token_seq;
 
 DO $$
 BEGIN
     CREATE TYPE odyssey_status AS ENUM (
+		'queued',
+        'failed',
         'claimed',
         'completed',
         'reconciling'
@@ -37,31 +38,30 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS odyssey_ledger (
     key TEXT NOT NULL,
-    target TEXT NOT NULL,
-    sequence BIGINT NOT NULL,
     status odyssey_status NOT NULL DEFAULT 'claimed',
-    mode odyssey_execution_mode NOT NULL,
-    input JSONB,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
 
-    PRIMARY KEY (key, target)
+    PRIMARY KEY (key)
 );
 
 CREATE TABLE IF NOT EXISTS odyssey_journeys (
     key TEXT NOT NULL,
     target TEXT NOT NULL,
-    owner_id TEXT NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	sequence BIGINT NOT NULL,
+    mode odyssey_execution_mode NOT NULL,
+    worker_id TEXT,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    input JSONB,
     execution_result JSONB,
-    status odyssey_status NOT NULL DEFAULT 'claimed',
-    attempts INTEGER NOT NULL DEFAULT 1,
-    fencing_token BIGINT NOT NULL DEFAULT 1,
+    status odyssey_status NOT NULL DEFAULT 'queued',
+    attempts INTEGER NOT NULL DEFAULT 0,
 
     PRIMARY KEY (key, target),
-    FOREIGN KEY (key, target)
-        REFERENCES odyssey_ledger(key, target)
+    FOREIGN KEY (key)
+        REFERENCES odyssey_ledger(key)
 );
 
 CREATE TABLE IF NOT EXISTS odyssey_deliveries (
@@ -77,6 +77,6 @@ CREATE TABLE IF NOT EXISTS odyssey_deliveries (
 
     PRIMARY KEY (key, target, emit_to),
     FOREIGN KEY (key, target)
-        REFERENCES odyssey_ledger(key, target)
+        REFERENCES odyssey_journeys(key, target)
 );
 `

@@ -2,7 +2,11 @@ module test
 
 go 1.25.5
 
-require github.com/sreejay-reddy/odyssey/odyssey-go v0.0.53
+require github.com/sreejay-reddy/odyssey/odyssey-go v0.0.54
+
+replace github.com/sreejay-reddy/odyssey/odyssey-go => ../odyssey-go
+
+replace github.com/sreejay-reddy/odyssey/protocol => ../protocol
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2 // indirect
