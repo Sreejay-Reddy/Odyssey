@@ -34,7 +34,7 @@ func Start(
 		return err
 	}
 
-	commandConns, eventConns, err := socket.CreateWorkers(cfg.Agent.SDK.Workers)
+	commandConns, eventConns, err := socket.CreateWorkers(ctx, cfg.Agent.SDK.Workers)
 	if err != nil {
 		return err
 	}

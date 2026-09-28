@@ -111,7 +111,13 @@ func run () (error) {
 	for i, conn := range commandConns {
 		send := make(chan *capnp.Message, 64)
 
-		go socket.RunWriter(ctx, conn, send)
+		go func (conn net.Conn, send chan *capnp.Message){
+			err := socket.RunWriter(ctx, conn, send)
+			if err != nil && errors.Is(err, context.Canceled) {
+				slog.Error("Writer failed", "Conn", conn, "error", err)
+				stop()
+			}
+		}(conn, send)
 
 		sends[i] = send
 	}
@@ -133,23 +139,25 @@ func run () (error) {
 
 	for _, worker := range sch.Workers() {
 		go func(worker scheduler.Worker){
-		err := runBatchLoop(ctx, worker, r, batchclient)
-			if err != nil {
-				slog.Error("batch loop failed", "error", err)
-				stop()
-			}
+			err := runBatchLoop(ctx, worker, r, batchclient)
+				if err != nil && !errors.Is(err, context.Canceled) {
+					slog.Error("Batch Loop failed", "worker", worker.ID, "error", err)
+					stop()
+				}
 		}(worker)
 	}
 
 	for _, eventConn := range eventConns {
 		go func(conn net.Conn) {
 			err := socket.RunEventReader(ctx, conn, batchclient, r)
-			if err != nil {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				slog.Error("Event Reader failed", "error", err)
 				stop()
 			}
 		}(eventConn)
 	}
+
+	slog.Info("Execution Workers Started", "Workers", cfg.Agent.SDK.Workers)
 
 	s := server.New(":8080")
 
@@ -179,11 +187,22 @@ func run () (error) {
 	pool.Close()
 
 	for _, conn := range commandConns {
-		conn.Close()
+		err := conn.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, conn := range eventConns {
-		conn.Close()
+		err := conn.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = ackconn.Close()
+	if err != nil {
+		return err
 	}
 
 	slog.Info("agent shutdown gracefully")

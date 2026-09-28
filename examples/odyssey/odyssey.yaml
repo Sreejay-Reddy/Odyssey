@@ -4,7 +4,7 @@ version : 1
 agent:
     sdk:
         workers: 4
-        batchsize: 64
+        batchsize: 1024
     postgres:
         pool_size: 15
 

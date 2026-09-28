@@ -15,7 +15,7 @@ func FindConfig() (string, error) {
 	}
 
 	for {
-		path := filepath.Join(dir, "odyssey.yaml")
+		path := filepath.Join(dir, "odyssey", "odyssey.yaml")
 
 		if _, err := os.Stat(path); err == nil {
 			return path, nil
@@ -30,7 +30,7 @@ func FindConfig() (string, error) {
 		dir = parent
 	}
 
-	return "", errors.New("odyssey.yaml not found")
+	return "", errors.New("odyssey/odyssey.yaml not found")
 }
 
 func LoadConfigYAML(path string) (Config, error) {
