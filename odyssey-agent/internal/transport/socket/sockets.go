@@ -8,13 +8,8 @@ import(
 	"path/filepath"
 )
 
-const(
-	AckPath = "/tmp/odyssey-ack.sock"
-	ResultPath = "/tmp/odyssey-result.sock"
-)
-
 const SocketDir = "/tmp/odyssey"
-
+const AckPath   = SocketDir + "/ack.sock"
 
 func createSocket(ctx context.Context, path string) (net.Conn, error) {
 	var dialer net.Dialer

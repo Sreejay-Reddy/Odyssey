@@ -12,7 +12,7 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-go"
 )
 
-const totalJobs = 100_000
+const totalJobs = 1000000
 
 type HelloInput struct {
 	Name string `json:"name"`
@@ -155,12 +155,6 @@ func main() {
 	if err := client.Register("hello", Hello, 30000); err != nil {
 		log.Fatal(err)
 	}
-
-	log.Printf("Seeding %d jobs...", totalJobs)
-
-	// if err := seed(ctx, dbURL); err != nil {
-	// 	log.Fatal(err)
-	// }
 
 	log.Println("Starting benchmark...")
 

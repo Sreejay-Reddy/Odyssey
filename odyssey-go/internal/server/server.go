@@ -18,7 +18,7 @@ func Start(
 	r *registry.Registry,
 	cfg configutil.Config,
 	state configutil.State) error {
-	ackconn, err := socket.CreateAckSocket()
+	ackconn, err := socket.CreateAckSocket(ctx)
 	if err != nil {
 		return err
 	}
