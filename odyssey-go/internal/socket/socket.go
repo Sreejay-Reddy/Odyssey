@@ -11,7 +11,7 @@ import (
 )
 
 const SocketDir = "/tmp/odyssey"
-const AckPath = "/tmp/odyssey-ack.sock"
+const AckPath   = SocketDir + "/ack.sock"
 
 func createListener(ctx context.Context, path string) (net.Listener, error) {
     if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -83,11 +83,12 @@ func CreateWorkers(ctx context.Context, workers int) ([]net.Conn, []net.Conn, er
 	return sockets, eventSockets, nil
 }
 
-func CreateAckSocket()(net.Conn, error){
-	listener, err := net.Listen("unix", AckPath)
+func CreateAckSocket(ctx context.Context) (net.Conn, error){
+	listener, err := createListener(ctx, AckPath)
 	if err != nil {
 		return nil, err
 	}
+	defer listener.Close()
 
 	conn, err := listener.Accept()
 	if err != nil {

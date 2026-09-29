@@ -78,12 +78,12 @@ func run () (error) {
 	slog.Info("Odyssey.yaml config")
 	fmt.Print(string(yamlData))
 
+	slog.Info("Starting Worker Connections")
+
 	ackconn, err := socket.CreateAckSocket(ctx)
 	if err != nil {
 		return err
 	}
-
-	slog.Info("connected ack socket")
 
 	decoder := capnp.NewDecoder(ackconn)
 
@@ -157,7 +157,7 @@ func run () (error) {
 		}(eventConn)
 	}
 
-	slog.Info("Execution Workers Started", "Workers", cfg.Agent.SDK.Workers)
+	slog.Info("Execution Workers Ready", "Workers", cfg.Agent.SDK.Workers)
 
 	s := server.New(":8080")
 
@@ -173,6 +173,8 @@ func run () (error) {
 
 	slog.Info("shutting down agent")
 
+	var errs []error
+
 	shutdownCtx, cancel := context.WithTimeout(
 		context.Background(),
 		5*time.Second,
@@ -181,7 +183,7 @@ func run () (error) {
 
 	err = s.Shutdown(shutdownCtx)
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	pool.Close()
@@ -189,25 +191,55 @@ func run () (error) {
 	for _, conn := range commandConns {
 		err := conn.Close()
 		if err != nil {
-			return err
+			errs = append(errs, err)
+		}
+
+		path, ok := conn.RemoteAddr().(*net.UnixAddr)
+		if !ok {
+			errs = append(errs, errors.New("connection is not a Unix socket"))
+		}
+
+		err = os.Remove(path.Name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, err)
 		}
 	}
 
 	for _, conn := range eventConns {
 		err := conn.Close()
 		if err != nil {
-			return err
+			errs = append(errs, err)
+		}
+
+		path, ok := conn.RemoteAddr().(*net.UnixAddr)
+		if !ok {
+			errs = append(errs, errors.New("connection is not a Unix socket"))
+		}
+
+		err = os.Remove(path.Name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, err)
 		}
 	}
 
 	err = ackconn.Close()
 	if err != nil {
-		return err
+		errs = append(errs, err)
+	}
+
+	ackpath, ok := ackconn.RemoteAddr().(*net.UnixAddr)
+	if !ok {
+		errs = append(errs, errors.New("connection is not a Unix socket"))
+	}
+
+	err = os.Remove(ackpath.Name)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		errs = append(errs, err)
 	}
 
 	slog.Info("agent shutdown gracefully")
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func main() {

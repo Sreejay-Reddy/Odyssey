@@ -2,7 +2,10 @@ module test
 
 go 1.25.5
 
-require github.com/sreejay-reddy/odyssey/odyssey-go v0.0.54
+require (
+	github.com/jackc/pgx/v5 v5.10.0
+	github.com/sreejay-reddy/odyssey/odyssey-go v0.0.54
+)
 
 replace github.com/sreejay-reddy/odyssey/odyssey-go => ../odyssey-go
 
@@ -14,7 +17,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/sreejay-reddy/odyssey/protocol v0.0.0-20260924182316-127409d79127 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
