@@ -6,6 +6,7 @@ import (
 )
 
 type Writer interface {
-	Acquire(ctx context.Context, registry *registry.Registry, workerID string, limit int) ([]Execution, error)
+	InitDB(ctx context.Context) error
+	Acquire(ctx context.Context, registry *registry.Registry, workerID []string, limit int) (map[string][]Execution, error)
 	Complete(ctx context.Context, executions []Execution) error
 }
