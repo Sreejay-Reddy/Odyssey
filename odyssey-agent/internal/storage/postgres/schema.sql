@@ -1,7 +1,3 @@
-package postgres
-
-const schemaSQL = `
-
 DO $$
 BEGIN
     CREATE TYPE odyssey_status AS ENUM (
@@ -79,4 +75,7 @@ CREATE TABLE IF NOT EXISTS odyssey_deliveries (
     FOREIGN KEY (key, target)
         REFERENCES odyssey_journeys(key, target)
 );
-`
+
+CREATE INDEX IF NOT EXISTS idx_odyssey_journeys_queued_key
+ON odyssey_journeys (key)
+WHERE status = 'queued';
