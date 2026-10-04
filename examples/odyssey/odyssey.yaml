@@ -2,9 +2,6 @@
 version : 1
 
 agent:
-    workpool:
-        maxsize: 64
-        interval: 100ms
     sdk:
         workers: 4
         batchsize: 1024

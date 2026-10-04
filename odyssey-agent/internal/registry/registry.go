@@ -59,13 +59,3 @@ func (r *Registry) GetByName(target string) (*Registered, error) {
 
 	return registered, nil
 }
-
-func (r *Registry) All() []Registered {
-	targets := make([]Registered, 0, len(r.byName))
-
-	for _, target := range r.byName {
-		targets = append(targets, *target)
-	}
-
-	return targets
-}

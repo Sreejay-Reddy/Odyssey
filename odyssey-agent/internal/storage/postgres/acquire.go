@@ -2,60 +2,36 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
-	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage"
+	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
+	"github.com/jackc/pgx/v5"
 )
 
 func (w *Writer) Acquire(
 	ctx context.Context,
 	registry *registry.Registry,
-	workerIDs []string,
+	workerID string,
 	limit int,
-) (map[string][]storage.Execution, error) {
-
-	if len(workerIDs) == 0 {
-		return nil, fmt.Errorf("no workers provided")
+) ([]storage.Execution, error) {
+	tx, err := w.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
 	}
+	defer tx.Rollback(ctx)
 
-	ttl := make(map[string]int64)
-
-	for _, target := range registry.All() {
-		ttl[target.Target] = int64(target.TTLMS)
-	}
-
-	ttlJSON, err := json.Marshal(ttl)
+	rows, err := tx.Query(ctx, `
+		SELECT key, target, input
+		FROM odyssey_journeys
+		WHERE status = 'queued'
+		LIMIT $1
+		FOR UPDATE SKIP LOCKED
+	`, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := w.pool.Query(
-		ctx,
-		`SELECT *
-		 FROM odyssey_acquire_work(
-			 $1::text[],
-			 $2::integer,
-			 $3::jsonb
-		 )`,
-		workerIDs,
-		limit,
-		ttlJSON,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	executions := make(map[string][]storage.Execution, len(workerIDs))
-
-	for _, workerID := range workerIDs {
-		executions[workerID] = make([]storage.Execution, 0, limit)
-	}
-
-	totalRows := 0
+	var executions []storage.Execution
 
 	for rows.Next() {
 		var e storage.Execution
@@ -63,24 +39,86 @@ func (w *Writer) Acquire(
 		if err := rows.Scan(
 			&e.Key,
 			&e.Target,
-			&e.WorkerID,
 			&e.Input,
-			&e.Status,
-			&e.Attempts,
-			&e.TTLMS,
 		); err != nil {
+			rows.Close()
 			return nil, err
 		}
 
-		executions[e.WorkerID] = append(
-			executions[e.WorkerID],
-			e,
-		)
+		e.WorkerID = workerID
 
-		totalRows++
+		registred, err := registry.GetByName(e.Target)
+		if err != nil {
+			return nil, err
+		}
+		e.TTLMS = registred.TTLMS
+
+		executions = append(executions, e)
 	}
 
+	rows.Close()
+
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	batch := &pgx.Batch{}
+
+	for _, e := range executions {
+		batch.Queue(
+			`UPDATE odyssey_journeys
+			 SET
+				started_at = NOW(),
+				attempts = attempts + 1,
+				status = 'claimed',
+				worker_id = $1,
+				expires_at = now() + ($2 * interval '1 millisecond') + (interval '30 second')
+			 WHERE key = $3
+			   AND target = $4
+			 RETURNING input, status, attempts`,
+			e.WorkerID,
+			e.TTLMS,
+			e.Key,
+			e.Target,
+		)
+	}
+
+	results := tx.SendBatch(ctx, batch)
+	defer results.Close()
+
+	for i := range executions {
+		e := &executions[i]
+
+		rows, err := results.Query()
+		if err != nil {
+			return nil, err
+		}
+
+		if rows.Next() {
+			if err := rows.Scan(
+				&e.Input,
+				&e.Status,
+				&e.Attempts,
+			); err != nil {
+				rows.Close()
+				return nil, err
+			}
+		} else {
+			e.Status = "acquire_failed"
+		}
+
+		rows.Close()
+	}
+
+	if len(executions) == 0 {
+        return executions, nil
+    }
+
+	if err := results.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 

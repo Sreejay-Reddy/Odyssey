@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,7 +18,6 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/server"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage/postgres"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/transport/socket"
-	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/workpool"
 
 	"capnproto.org/go/capnp/v3"
 	"gopkg.in/yaml.v3"
@@ -29,11 +26,10 @@ import (
 func runBatchLoop (ctx context.Context, 
 	worker scheduler.Worker, 
 	r *registry.Registry, 
-	wp *workpool.WorkPool,
 	batchclient *batcher.Batcher) (error) {
 	for {
 
-		batch, err := batchclient.Next(ctx, wp, worker.ID)
+		batch, err := batchclient.Next(ctx, worker.ID)
 		if err != nil {
 			return  err
 		}
@@ -117,8 +113,8 @@ func run () (error) {
 
 		go func (conn net.Conn, send chan *capnp.Message){
 			err := socket.RunWriter(ctx, conn, send)
-			if err != nil && !errors.Is(err, context.Canceled) {
-				slog.Error("Writer failed", "error", err)
+			if err != nil && errors.Is(err, context.Canceled) {
+				slog.Error("Writer failed", "Conn", conn, "error", err)
 				stop()
 			}
 		}(conn, send)
@@ -139,32 +135,11 @@ func run () (error) {
 		cfg.Agent.SDK.BatchSize = 128
 	}
 
-	err = writer.InitDB(ctx)
-	if err != nil {
-		return err
-	}
-
-	wrkList := make([]string, 0, cfg.Agent.SDK.Workers)
-
-	for _, wrk := range sch.Workers() {
-		wrkList = append(wrkList, wrk.ID)
-	}
-
-	wp := workpool.New(r, writer, wrkList, cfg.Agent.SDK.BatchSize, cfg.Agent.WorkPool.Maxsize, cfg.Agent.WorkPool.Interval)
-
-	go func(workpool *workpool.WorkPool){
-		err := workpool.StartWorkPool(ctx)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			slog.Error("WorkPool Startup Failed", "error", err)
-			stop()
-		}
-	}(wp)
-
-	batchclient := batcher.New(writer, r, cfg.Agent.SDK.BatchSize, cfg.Agent.WorkPool.Interval)
+	batchclient := batcher.New(writer, r, cfg.Agent.SDK.BatchSize, time.Duration(1)*time.Second)
 
 	for _, worker := range sch.Workers() {
 		go func(worker scheduler.Worker){
-			err := runBatchLoop(ctx, worker, r, wp, batchclient)
+			err := runBatchLoop(ctx, worker, r, batchclient)
 				if err != nil && !errors.Is(err, context.Canceled) {
 					slog.Error("Batch Loop failed", "worker", worker.ID, "error", err)
 					stop()
@@ -175,7 +150,7 @@ func run () (error) {
 	for _, eventConn := range eventConns {
 		go func(conn net.Conn) {
 			err := socket.RunEventReader(ctx, conn, batchclient, r)
-			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				slog.Error("Event Reader failed", "error", err)
 				stop()
 			}
@@ -188,7 +163,7 @@ func run () (error) {
 
 	go func(){
 		err := s.Start()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err != nil {
 			slog.Error("server failed", "error", err)
 			s.Shutdown(ctx)
 		}

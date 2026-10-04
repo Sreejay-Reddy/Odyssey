@@ -7,7 +7,6 @@ import (
 
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/registry"
 	"github.com/sreejay-reddy/odyssey/odyssey-agent/internal/storage"
-    "github.com/sreejay-reddy/odyssey/odyssey-agent/internal/workpool"
 )
 
 type Batcher struct {
@@ -37,25 +36,38 @@ func New(
     }
 }
 
-func (b *Batcher) Next(
-    ctx context.Context,
-    wp *workpool.WorkPool,
-    workerID string,
-) (Batch, error) {
+func (b *Batcher) Next(ctx context.Context, workerID string) (Batch, error) {
+    for {
+        executions, err := b.writer.Acquire(
+            ctx,
+            b.registry,
+            workerID,
+            b.limit,
+        )
+        if err != nil {
+            return Batch{}, err
+        }
 
-    executions, err := wp.Pull(ctx, workerID)
-    if err != nil {
-        return Batch{}, err
+        if len(executions) > 0 {
+            batchID := b.nextID.Add(1)
+
+            return Batch{
+                ID: batchID,
+                Executions: executions,
+            }, nil
+        }
+
+        timer := time.NewTimer(b.interval)
+
+        select {
+        case <-ctx.Done():
+            timer.Stop()
+            return Batch{}, ctx.Err()
+
+        case <-timer.C:
+        }
     }
-
-    batchID := b.nextID.Add(1)
-
-    return Batch{
-        ID:         batchID,
-        Executions: executions,
-    }, nil
 }
-
 
 func (b *Batcher) BatchComplete(ctx context.Context, executions []storage.Execution) (error) {
     err := b.writer.Complete(ctx, executions)
