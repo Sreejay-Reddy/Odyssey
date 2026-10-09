@@ -1,6 +1,3 @@
-package postgres
-
-const schemaSQL = `
 
 DO $$
 BEGIN
@@ -79,4 +76,3 @@ CREATE TABLE IF NOT EXISTS odyssey_deliveries (
     FOREIGN KEY (key, target)
         REFERENCES odyssey_journeys(key, target)
 );
-`

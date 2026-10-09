@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -113,7 +115,7 @@ func run () (error) {
 
 		go func (conn net.Conn, send chan *capnp.Message){
 			err := socket.RunWriter(ctx, conn, send)
-			if err != nil && errors.Is(err, context.Canceled) {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				slog.Error("Writer failed", "Conn", conn, "error", err)
 				stop()
 			}
@@ -135,6 +137,11 @@ func run () (error) {
 		cfg.Agent.SDK.BatchSize = 128
 	}
 
+	err = writer.InitDB(ctx)
+	if err != nil {
+		return err
+	}
+
 	batchclient := batcher.New(writer, r, cfg.Agent.SDK.BatchSize, time.Duration(1)*time.Second)
 
 	for _, worker := range sch.Workers() {
@@ -150,7 +157,7 @@ func run () (error) {
 	for _, eventConn := range eventConns {
 		go func(conn net.Conn) {
 			err := socket.RunEventReader(ctx, conn, batchclient, r)
-			if err != nil && !errors.Is(err, context.Canceled) {
+			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
 				slog.Error("Event Reader failed", "error", err)
 				stop()
 			}
@@ -164,7 +171,9 @@ func run () (error) {
 	go func(){
 		err := s.Start()
 		if err != nil {
-			slog.Error("server failed", "error", err)
+			if !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("server failed", "error", err)
+			}
 			s.Shutdown(ctx)
 		}
 	}()
