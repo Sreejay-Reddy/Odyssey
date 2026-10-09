@@ -1,5 +1,5 @@
 DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/odyssey_bench?sslmode=disable
-JOBS ?= 1000000
+JOBS ?= 100000
 
 .PHONY: bench-seed bench-run
 

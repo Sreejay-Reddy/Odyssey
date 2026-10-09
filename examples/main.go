@@ -12,7 +12,7 @@ import (
 	"github.com/sreejay-reddy/odyssey/odyssey-go"
 )
 
-const totalJobs = 1000000
+const totalJobs = 100000
 
 type HelloInput struct {
 	Name string `json:"name"`
